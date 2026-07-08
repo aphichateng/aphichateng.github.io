@@ -1,644 +1,781 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ชุดโนโมกราฟวิเคราะห์การสูญเสียพลังงาน</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AppDeck — Web Application Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --paper:#F1F4F8; --grid:#D6DEE9;
-    --ink:#16365C; --ink-soft:#5A7699;
-    --iso:#C8102E; --accent:#0E7C66; --card:#FFF;
-  }
-  *{box-sizing:border-box}
-  body{
-    margin:0; background:var(--paper);
-    background-image:linear-gradient(var(--grid) 1px,transparent 1px),
-                     linear-gradient(90deg,var(--grid) 1px,transparent 1px);
-    background-size:24px 24px;
-    font-family:"Sarabun","Leelawad UI",Tahoma,system-ui,sans-serif;
-    color:var(--ink);
-  }
-  .layout{display:flex; min-height:100vh}
-  /* ===== เมนูซ้าย ===== */
-  aside{
-    width:250px; flex:0 0 250px; background:var(--card);
-    border-right:2px solid var(--ink); padding:14px 0 30px;
-  }
-  aside .brand{padding:0 14px 10px; border-bottom:2px solid var(--ink); margin-bottom:8px}
-  aside .brand b{font-size:.95rem; letter-spacing:.5px}
-  aside .brand small{display:block; color:var(--ink-soft); font-size:.7rem}
-  .grp{padding:8px 14px 2px; font-size:.72rem; font-weight:700; letter-spacing:1px;
-       color:var(--accent); text-transform:uppercase}
-  .item{
-    display:block; width:100%; text-align:left; background:none; border:none;
-    padding:6px 14px 6px 20px; font:inherit; font-size:.82rem; color:var(--ink);
-    cursor:pointer; border-left:4px solid transparent;
-  }
-  .item:hover{background:var(--paper)}
-  .item.active{border-left-color:var(--iso); background:var(--paper); font-weight:700}
-  #mobilesel{display:none}
-  /* ===== เนื้อหา ===== */
-  main{flex:1; padding:16px 14px 40px; max-width:880px; margin:0 auto}
-  h1{font-size:1.15rem; margin:0 0 2px}
-  .formula{font-family:ui-monospace,"Courier New",monospace; font-size:.9rem;
-           color:var(--ink-soft); margin-bottom:10px}
-  .chartcard{background:var(--card); border:2px solid var(--ink);
-    box-shadow:6px 6px 0 rgba(22,54,92,.15); padding:8px 4px 4px; margin-bottom:14px}
-  svg{width:100%; height:auto; display:block; touch-action:none; user-select:none}
-  .scale-line{stroke:var(--ink); stroke-width:2}
-  .tick{stroke:var(--ink); stroke-width:1.4}
-  .tick.minor{stroke:var(--ink-soft); stroke-width:.8}
-  .ticklabel{font-family:ui-monospace,monospace; font-size:11.5px; fill:var(--ink)}
-  .axistitle{font-size:13px; font-weight:700; fill:var(--ink)}
-  .axistitle.sub{fill:var(--accent); font-weight:600; font-size:11px}
-  .iso{stroke:var(--iso); stroke-width:2.5; stroke-dasharray:7 4}
-  .handle{fill:#fff; stroke:var(--iso); stroke-width:3; cursor:grab}
-  .readdot{fill:var(--iso)}
-  .readtag{font-family:ui-monospace,monospace; font-size:13px; font-weight:700; fill:var(--iso)}
-  .panel{background:var(--card); border:2px solid var(--ink);
-    box-shadow:6px 6px 0 rgba(22,54,92,.15); padding:14px 16px; margin-bottom:14px}
-  .panel h2{font-size:.9rem; margin:0 0 10px; text-transform:uppercase; letter-spacing:1px}
-  .inputs{display:grid; grid-template-columns:repeat(auto-fit,minmax(135px,1fr)); gap:10px}
-  .field label{display:block; font-size:.75rem; color:var(--ink-soft); margin-bottom:3px}
-  .field input{width:100%; padding:7px 9px; font-size:.95rem; border:1.5px solid var(--ink);
-    background:#fff; color:var(--ink); font-family:ui-monospace,monospace}
-  .field input:focus{outline:3px solid rgba(200,16,46,.35)}
-  .results{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-top:12px}
-  .res{border:1.5px dashed var(--ink-soft); padding:10px}
-  .res .v{font-family:ui-monospace,monospace; font-size:1.15rem; font-weight:700}
-  .res .u{font-size:.72rem; color:var(--ink-soft)}
-  .res.hot .v{color:var(--iso)}
-  .res.good .v{color:#0F6B2F}
-  .divider{border-top:2px solid var(--ink); margin:16px 0 14px}
-  .note{font-size:.82rem; line-height:1.7}
-  .note b{color:var(--iso)}
-  .titlebar{display:flex; align-items:flex-start; justify-content:space-between; gap:10px}
-  .btn{
-    flex:0 0 auto; background:var(--ink); color:#fff; border:none; cursor:pointer;
-    font:inherit; font-size:.82rem; font-weight:700; padding:8px 14px;
-    box-shadow:3px 3px 0 rgba(22,54,92,.3);
-  }
-  .btn:hover{background:var(--iso)}
-  .btn:active{transform:translate(2px,2px); box-shadow:1px 1px 0 rgba(22,54,92,.3)}
-  .printinfo{display:none; font-size:.75rem; color:var(--ink-soft); margin-bottom:6px}
-  @media (max-width:760px){
-    .layout{display:block}
-    aside{width:auto; border-right:none; border-bottom:2px solid var(--ink); padding:10px 12px}
-    aside nav{display:none}
-    #mobilesel{display:block; width:100%; margin-top:8px; padding:8px;
-      border:1.5px solid var(--ink); font:inherit; background:#fff; color:var(--ink)}
-  }
-  @media print{
-    aside,.btn,#m-inputs,.panel h2{display:none}
-    .printinfo{display:block}
-    body{background:#fff}
-    .chartcard,.panel{box-shadow:none; break-inside:avoid}
-    main{max-width:none; padding:0}
-  }
+/* ============ Design tokens ============ */
+:root{
+  --bg:#F2F4F8; --surface:#FFF; --ink:#16202E; --ink-soft:#5A6678;
+  --line:#E1E6EE; --accent:#2E5BFF; --accent-soft:#EAF0FF;
+  --green:#14A97C; --green-soft:#E4F6EF; --amber:#ED9F2D; --amber-soft:#FCF1DD;
+  --red:#E04F5F; --red-soft:#FBE9EB;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-size:15px}
+.display{font-family:'Space Grotesk',sans-serif}
+.mono{font-family:'JetBrains Mono',monospace}
+::selection{background:var(--accent-soft)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ============ Atoms ============ */
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--accent);
+  background:var(--accent);color:#fff;font:600 14px 'Inter';padding:9px 16px;
+  border-radius:9px;cursor:pointer;transition:transform .06s,opacity .15s}
+.btn:hover{opacity:.9}.btn:active{transform:scale(.96)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.danger{background:transparent;color:var(--red);border-color:var(--red-soft)}
+.btn.green{background:var(--green);border-color:var(--green)}
+.btn.sm{padding:5px 11px;font-size:12px}
+.btn:focus-visible,input:focus-visible,select:focus-visible,.tab:focus-visible,.pill:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px}
+
+.chip{font:500 11px 'JetBrains Mono';padding:2px 9px;border-radius:99px;white-space:nowrap}
+.chip.green{background:var(--green-soft);color:var(--green)}
+.chip.amber{background:var(--amber-soft);color:var(--amber)}
+.chip.red{background:var(--red-soft);color:var(--red)}
+.chip.blue{background:var(--accent-soft);color:var(--accent)}
+.chip.gray{background:#EEF1F6;color:var(--ink-soft)}
+
+.field{display:block;margin-bottom:14px}
+.field span{display:block;font:600 11px 'Inter';letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:5px}
+.field input,.field select{width:100%;border:1px solid var(--line);background:#FAFBFD;color:var(--ink);
+  border-radius:9px;padding:9px 12px;font:400 14px 'Inter'}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.pill{border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);
+  font:500 13px 'Inter';padding:7px 14px;border-radius:99px;cursor:pointer}
+.pill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.err{color:var(--red);font-size:13px;margin:6px 0 10px}
+.muted{color:var(--ink-soft)}
+.hidden{display:none!important}
+
+/* ============ Top bar ============ */
+header{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:12px;
+  background:var(--surface);border-bottom:1px solid var(--line);padding:10px 20px}
+.logo{display:flex;align-items:center;gap:8px;cursor:pointer}
+.logo .mark{width:28px;height:28px;border-radius:8px;background:var(--accent);color:#fff;
+  display:grid;place-items:center;font:700 15px 'Space Grotesk'}
+.logo b{font:700 18px 'Space Grotesk';letter-spacing:-.02em}
+header .spacer{flex:1}
+#nav-email{font-size:13px;color:var(--ink-soft)}
+@media(max-width:640px){#nav-email{display:none}}
+
+/* ============ Landing ============ */
+.landing{max-width:760px;margin:0 auto;padding:70px 24px;text-align:center}
+.landing .eyebrow{font:500 11px 'JetBrains Mono';letter-spacing:.18em;color:var(--accent);margin-bottom:16px}
+.landing h1{font:700 clamp(34px,6vw,56px)/1.1 'Space Grotesk';letter-spacing:-.02em;margin-bottom:18px}
+.landing p.lede{font-size:17px;color:var(--ink-soft);max-width:560px;margin:0 auto 30px}
+.landing .cta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:52px;text-align:left}
+.feat .card{padding:16px}
+.feat b{font-family:'Space Grotesk';display:block;margin-bottom:4px}
+.feat small{color:var(--ink-soft);font-size:13px}
+.demo-note{margin-top:38px;font:500 11px 'JetBrains Mono';color:var(--ink-soft)}
+
+/* ============ Auth / payment ============ */
+.narrow{max-width:400px;margin:0 auto;padding:56px 24px}
+.seg{display:flex;gap:4px;background:var(--bg);border-radius:9px;padding:4px;margin-bottom:22px}
+.seg button{flex:1;border:0;background:transparent;color:var(--ink-soft);font:600 13px 'Inter';
+  padding:7px;border-radius:7px;cursor:pointer}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(22,32,46,.08)}
+.bank{background:var(--ink);color:#fff;border-radius:14px;padding:18px 20px;margin-bottom:18px}
+.bank .h{font:500 11px 'JetBrains Mono';letter-spacing:.12em;color:#9DA9BC;margin-bottom:10px}
+.bank .row{display:flex;justify-content:space-between;font-size:14px;padding:7px 0;
+  border-bottom:1px solid rgba(255,255,255,.08)}
+.bank .row span:first-child{color:#9DA9BC}
+.bank .row span:last-child{font-family:'JetBrains Mono'}
+.center{text-align:center}
+
+/* ============ Tab strip (signature) ============ */
+.tabstrip{display:flex;align-items:flex-end;gap:4px;overflow-x:auto;background:var(--surface);
+  border-bottom:1px solid var(--line);padding:8px 16px 0}
+.tab{display:flex;align-items:center;gap:8px;border:1px solid transparent;background:transparent;
+  color:var(--ink-soft);font:600 13px 'Inter';padding:8px 14px;border-radius:10px 10px 0 0;
+  cursor:pointer;white-space:nowrap;user-select:none}
+.tab.on{background:var(--bg);border-color:var(--line);border-bottom-color:var(--bg);
+  margin-bottom:-1px;color:var(--ink)}
+.tab .x{padding:0 4px;border-radius:5px;color:var(--ink-soft)}
+.tab .x:hover{background:rgba(0,0,0,.08)}
+
+/* ============ Portal ============ */
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+.controls{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.controls input{flex:1;min-width:200px;border:1px solid var(--line);background:var(--surface);
+  border-radius:9px;padding:10px 14px;font:400 14px 'Inter'}
+.pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+.viewseg{display:flex;gap:4px;background:#E7EBF2;border-radius:9px;padding:4px}
+.viewseg button{border:0;background:transparent;color:var(--ink-soft);font:600 13px 'Inter';
+  padding:7px 13px;border-radius:7px;cursor:pointer}
+.viewseg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(22,32,46,.1)}
+
+.glyph{border-radius:9px;display:grid;place-items:center;color:#fff;
+  font:700 15px 'Space Grotesk';flex-shrink:0;width:40px;height:40px}
+.glyph.sm{width:26px;height:26px;font-size:12px;border-radius:7px}
+
+.list-item{display:flex;align-items:center;gap:14px;padding:12px 16px;margin-bottom:8px}
+.list-item .info{flex:1;min-width:0}
+.list-item .name{font:600 15px 'Space Grotesk';display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.list-item .desc{font-size:13px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.board{display:flex;gap:14px;overflow-x:auto;align-items:flex-start;padding-bottom:14px}
+.col{background:#E9EDF4;border-radius:14px;padding:12px;flex:0 0 264px}
+.col .col-h{display:flex;justify-content:space-between;align-items:center;padding:0 4px 10px;
+  font:500 11px 'JetBrains Mono';letter-spacing:.08em;color:var(--ink-soft)}
+.kcard{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:8px}
+.kcard .name{display:flex;align-items:center;gap:8px;font:600 14px 'Space Grotesk';margin-bottom:4px}
+.kcard p{font-size:12px;color:var(--ink-soft);margin-bottom:10px}
+.empty{border:1px dashed var(--line);border-radius:14px;background:var(--surface);
+  padding:40px;text-align:center;color:var(--ink-soft)}
+
+/* ============ App frame ============ */
+.frame-wrap{display:flex;flex-direction:column;height:calc(100vh - 106px)}
+.frame-bar{display:flex;gap:12px;align-items:center;padding:7px 16px;font:500 11px 'JetBrains Mono';color:var(--ink-soft)}
+.frame-bar a{color:var(--accent);text-decoration:none}
+.frame-bar .url{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+iframe.appframe{flex:1;width:100%;border:0;background:#fff}
+.frame-hint{padding:5px 16px;font-size:11px;color:var(--ink-soft)}
+
+/* ============ Admin ============ */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:22px}
+.stats .card{padding:16px}
+.stats .num{font:700 26px 'Space Grotesk'}
+.stats .lbl{font-size:12px;color:var(--ink-soft)}
+.admin-grid{display:grid;grid-template-columns:340px 1fr;gap:18px}
+@media(max-width:860px){.admin-grid{grid-template-columns:1fr}}
+.form-card{padding:20px;align-self:start}
+.form-card h3{font:700 16px 'Space Grotesk';margin-bottom:14px}
+.row-item{display:flex;align-items:center;gap:12px;padding:11px 16px;margin-bottom:8px;flex-wrap:wrap}
+.row-item .info{flex:1;min-width:160px}
+.row-item .t{font:600 14px 'Inter';display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row-item .s{font-size:12px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:420px}
+.upload-box input[type=file]{width:100%;border:1px dashed var(--line);background:#FAFBFD;
+  border-radius:9px;padding:9px 12px;font:400 13px 'Inter';margin-bottom:8px}
+footer{padding:30px;text-align:center;font-size:12px;color:var(--ink-soft)}
 </style>
 </head>
 <body>
-<div class="layout">
-<aside>
-  <div class="brand"><b>ชุดโนโมกราฟพลังงาน</b>
-    <small>Energy Loss Nomograph Suite · สเกล log ขนาน 3 เส้น</small></div>
-  <select id="mobilesel" aria-label="เลือกหัวข้อ"></select>
-  <nav id="sidenav"></nav>
-</aside>
-<main>
-  <div class="titlebar">
-    <h1 id="m-title"></h1>
-    <button id="btn-pdf" class="btn" type="button">⤓ Export PDF</button>
+
+<header>
+  <div class="logo" onclick="goHome()">
+    <div class="mark">A</div><b>AppDeck</b>
   </div>
-  <div class="printinfo" id="printinfo"></div>
-  <div class="formula" id="m-formula"></div>
-  <div class="chartcard"><svg id="nomo" viewBox="0 0 760 780" role="img"></svg></div>
-  <div class="panel settings">
-    <h2>ตั้งค่า / ลากจุดสีแดงบนกราฟได้โดยตรง</h2>
-    <div class="inputs" id="m-inputs"></div>
-    <div class="results" id="m-results"></div>
-    <div class="divider"></div>
-    <div class="inputs" id="inv-inputs"></div>
-    <div class="results" id="inv-results"></div>
+  <div class="spacer"></div>
+  <span id="nav-admin" class="hidden">
+    <button class="btn sm ghost" id="btn-dash" onclick="show('admin')">Dashboard</button>
+    <button class="btn sm ghost" id="btn-portal" onclick="show('portal')">Portal</button>
+  </span>
+  <span id="nav-email"></span>
+  <span id="nav-access"></span>
+  <button class="btn sm ghost hidden" id="btn-logout" onclick="logout()">Log out</button>
+  <button class="btn sm hidden" id="btn-signin" onclick="show('auth')">Sign in</button>
+</header>
+
+<!-- ============ Landing ============ -->
+<main id="scr-landing" class="landing hidden">
+  <p class="eyebrow">MEMBER-ONLY LAUNCHPAD</p>
+  <h1>Every tool your team uses,<br>behind one door.</h1>
+  <p class="lede">AppDeck curates external and locally-uploaded web applications in one place.
+     Register, confirm your bank transfer, and launch everything from a single workspace —
+     each app opens in its own tab without leaving the deck.</p>
+  <div class="cta">
+    <button class="btn" onclick="show('auth');setAuthMode('register')">Create an account</button>
+    <button class="btn ghost" onclick="show('auth');setAuthMode('login')">I'm already a member</button>
   </div>
-  <div class="panel"><h2>หมายเหตุ</h2><div class="note" id="m-note"></div></div>
+  <div class="feat">
+    <div class="card"><b>List + Kanban</b><small>Browse apps as a scannable list or a board grouped by category.</small></div>
+    <div class="card"><b>In-frame tabs</b><small>Apps open in tabs inside AppDeck, so your workspace stays intact.</small></div>
+    <div class="card"><b>Upload local apps</b><small>Admins upload an .html file and AppDeck creates the launch link.</small></div>
+  </div>
+  <p class="demo-note">demo · admin@portal.com / admin123 · member@portal.com / member123</p>
 </main>
+
+<!-- ============ Auth ============ -->
+<main id="scr-auth" class="narrow hidden">
+  <div class="card" style="padding:24px">
+    <div class="seg">
+      <button id="seg-login" onclick="setAuthMode('login')">Log in</button>
+      <button id="seg-register" onclick="setAuthMode('register')">Register</button>
+    </div>
+    <label class="field"><span>Email</span>
+      <input id="auth-email" type="email" placeholder="you@company.com" autocomplete="email"></label>
+    <label class="field"><span>Password</span>
+      <input id="auth-pass" type="password" placeholder="At least 6 characters" autocomplete="current-password"></label>
+    <p class="err hidden" id="auth-err"></p>
+    <button class="btn" id="auth-submit" onclick="submitAuth()">Log in</button>
+    <p class="muted hidden" id="auth-hint" style="font-size:12px;margin-top:14px">
+      After registering you'll see the bank-transfer instructions. Access opens once an admin verifies your payment.</p>
+  </div>
+</main>
+
+<!-- ============ Payment gate ============ -->
+<main id="scr-pay" class="narrow hidden">
+  <div id="pay-form">
+    <h2 class="display" style="font-size:24px;font-weight:700;margin-bottom:4px">Activate your membership</h2>
+    <p class="muted" style="font-size:14px;margin-bottom:22px">Access to the app portal opens after your bank transfer is confirmed.</p>
+    <div class="bank">
+      <p class="h">TRANSFER DETAILS</p>
+      <div class="row"><span>Bank</span><span>Krung Demo Bank</span></div>
+      <div class="row"><span>Account name</span><span>AppDeck Co., Ltd.</span></div>
+      <div class="row"><span>Account no.</span><span>123-4-56789-0</span></div>
+      <div class="row"><span>Amount</span><span>&#3647;990 / year</span></div>
+    </div>
+    <div class="card" style="padding:20px">
+      <label class="field"><span>Transfer reference / slip number</span>
+        <input id="pay-ref" placeholder="e.g. TRF-102938"></label>
+      <p class="err hidden" id="pay-err"></p>
+      <button class="btn" onclick="submitPayment()">Submit for verification</button>
+    </div>
+  </div>
+  <div id="pay-pending" class="card center hidden" style="padding:36px 28px">
+    <div style="width:48px;height:48px;margin:0 auto 16px;border-radius:99px;background:var(--amber-soft);display:grid;place-items:center;font-size:22px">&#9203;</div>
+    <h2 class="display" style="font-size:20px;font-weight:700;margin-bottom:8px">Payment under review</h2>
+    <p class="muted" style="font-size:14px;margin-bottom:16px">
+      We received your transfer reference. An admin verifies transfers within one business day;
+      your membership unlocks automatically once confirmed.</p>
+    <span class="chip amber">STATUS: PENDING VERIFICATION</span>
+    <p class="muted" style="font-size:12px;margin-top:18px">Demo tip: log in as admin and verify this payment in the dashboard.</p>
+  </div>
+</main>
+
+<!-- ============ Portal ============ -->
+<div id="scr-portal" class="hidden">
+  <div class="tabstrip" id="tabstrip"></div>
+  <main class="wrap" id="portal-home">
+    <div class="controls">
+      <input id="q" placeholder="Search applications…" oninput="renderCatalog()">
+      <div class="viewseg">
+        <button id="v-list" class="on" onclick="setView('list')">&#9776; List</button>
+        <button id="v-kanban" onclick="setView('kanban')">&#9638; Kanban</button>
+      </div>
+    </div>
+    <div class="pills" id="cat-pills"></div>
+    <div id="catalog"></div>
+  </main>
+  <div id="portal-frame" class="hidden"></div>
 </div>
 
+<!-- ============ Admin ============ -->
+<main id="scr-admin" class="wrap hidden">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px">
+    <div>
+      <h1 class="display" style="font-size:24px;font-weight:700;margin-bottom:2px">Admin dashboard</h1>
+      <p class="muted" style="font-size:14px">Manage applications, categories and payment verification. <span class="mono" style="font-size:11px">· data saved in this browser</span></p>
+    </div>
+    <button class="btn sm ghost" onclick="resetDemo()">Reset demo data</button>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="pills">
+    <button class="pill on" id="at-apps" onclick="setAdminTab('apps')">Applications</button>
+    <button class="pill" id="at-cats" onclick="setAdminTab('cats')">Categories</button>
+    <button class="pill" id="at-pay" onclick="setAdminTab('pay')">Payments</button>
+  </div>
+
+  <div id="admin-apps" class="admin-grid">
+    <div class="card form-card">
+      <h3 id="app-form-title">Add application</h3>
+      <label class="field"><span>Name</span><input id="af-name" placeholder="e.g. Chart Studio"></label>
+      <label class="field"><span>Short description</span><input id="af-desc" placeholder="One sentence about what it does"></label>
+      <label class="field"><span>Link type</span>
+        <select id="af-type" autocomplete="off" onchange="onLinkTypeChange()">
+          <option value="external">External URL</option>
+          <option value="local">Local app (upload file)</option>
+        </select></label>
+      <label class="field" id="af-url-wrap"><span>URL</span><input id="af-url" placeholder="https://…"></label>
+      <div class="field upload-box hidden" id="af-local-wrap">
+        <span>Upload local app</span>
+        <input id="af-file" type="file" accept=".html,.htm" onchange="onFileChosen(event)">
+        <p class="muted" style="font-size:11px">Single .html file. The link is created from the uploaded file and opens in an in-frame tab.</p>
+        <p id="af-link" class="mono hidden" style="font-size:12px;margin-top:8px;padding:8px 10px;border-radius:8px;background:var(--green-soft);color:var(--green);word-break:break-all"></p>
+      </div>
+      <label class="field"><span>Category</span><select id="af-cat"></select></label>
+      <p class="err hidden" id="af-err"></p>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="saveApp()" id="af-save">Add application</button>
+        <button class="btn ghost hidden" id="af-cancel" onclick="resetAppForm()">Cancel</button>
+      </div>
+    </div>
+    <div id="admin-app-list"></div>
+  </div>
+
+  <div id="admin-cats" class="hidden" style="max-width:620px">
+    <div class="card form-card" style="margin-bottom:14px">
+      <h3 id="cat-form-title">New category</h3>
+      <label class="field"><span>Category name</span><input id="cf-name" placeholder="e.g. Marketing"></label>
+      <p class="err hidden" id="cf-err"></p>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="saveCat()" id="cf-save">Add category</button>
+        <button class="btn ghost hidden" id="cf-cancel" onclick="resetCatForm()">Cancel</button>
+      </div>
+    </div>
+    <div id="admin-cat-list"></div>
+    <p class="muted" style="font-size:12px;margin-top:10px">Categories that still contain applications can't be deleted — move or delete the apps first.</p>
+  </div>
+
+  <div id="admin-pay" class="hidden" style="max-width:760px"></div>
+</main>
+
+<footer>AppDeck · single-file build (HTML + CSS + JS) · in-memory demo</footer>
+
 <script>
-(function(){
-"use strict";
-const SIG=5.67e-8, P4=t=>Math.pow(t,4);
-Math.log10=Math.log10||(x=>Math.log(x)/Math.LN10);
-const fmt=(x,d)=>isFinite(x)?x.toLocaleString("en-US",{maximumFractionDigits:d??(Math.abs(x)>=100?0:Math.abs(x)>=1?1:3)}):"–";
-const kfmt=q=>q>=1e6?(+(q/1e6).toPrecision(3))+"M":q>=1000?(+(q/1000).toPrecision(3))+"k":String(+q.toPrecision(3));
+/* ================================================================
+   AppDeck — standalone single-file build.
+   No backend: users, categories, apps and payments live in memory
+   for the session. Local apps are uploaded as .html and served to the
+   in-frame tab via a blob: URL. (The Flask+SQLite build persists data.)
+   ================================================================ */
 
-/* ---------- ตัวช่วยนิยามโมดูล ---------- */
-const H8={id:"h",label:"ชั่วโมงทำงาน/ปี",def:8000};
-const CE=d=>({id:"c",label:"ค่าพลังงาน (บาท/kWh)",def:d});
-const row=(l,v,u,hot)=>({l,v,u,hot});
-const kwhRows=(kW,E)=>{const kwh=kW*E.h;return[
-  row("พลังงานสูญเสีย",fmt(kwh,0),"kWh/ปี"),
-  row("คิดเป็นเงิน",fmt(kwh*E.c,0),"บาท/ปี")];};
+const uid = () => Math.random().toString(36).slice(2, 9);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-/* ---------- นิยามโนโมกราฟทุกโมดูล  q = C · gL(vL) · gR(vR) ---------- */
-const GROUPS=[
-{name:"กลุ่มระบบไฟฟ้า",items:[
- {id:"el-line",title:"ระบบส่งไฟฟ้ากำลัง (กำลังสูญเสียในสายส่ง I²R)",
-  formula:"P<sub>loss</sub> [kW] = 3 · I² · R / 1000  (3 เฟส)",
-  C:0.003,gL:i=>i*i,gR:r=>r,
-  L:{label:"กระแสต่อเฟส I (A)",min:10,max:500,def:150,
-     ticks:[10,15,20,30,40,50,70,100,150,200,300,400,500],majors:[10,20,50,100,200,500]},
-  R:{label:"ความต้านทานรวม/เฟส R (Ω)",min:0.02,max:2,def:0.2,
-     ticks:[0.02,0.03,0.05,0.07,0.1,0.15,0.2,0.3,0.5,0.7,1,1.5,2],majors:[0.02,0.05,0.1,0.2,0.5,1,2]},
-  M:{label:"กำลังสูญเสีย (kW)",unit:"kW"},
-  extras:[H8,CE(4)],results:(q,l,r,E)=>[row("กำลังสูญเสีย",fmt(q,2),"kW",1),...kwhRows(q,E)],
-  note:"R = ความต้านทานตัวนำ (Ω/km) × ระยะทาง (km) ต่อเฟส · การสูญเสียแปรตามกระแสยกกำลังสอง — ลดกระแสด้วยการยกแรงดัน แก้ PF หรือเพิ่มขนาดสายจะลด loss ได้เร็วมาก"},
- {id:"el-tou",title:"การเปลี่ยนประเภทผู้ใช้ไฟฟ้าเป็น TOU / TOD",
-  formula:"ผลประหยัด [บาท/ปี] = 365 · E<sub>ย้ายช่วง</sub> · Δอัตราค่าไฟ",
-  C:365,gL:e=>e,gR:d=>d,
-  L:{label:"พลังงานที่ย้ายไป Off-peak (kWh/วัน)",min:10,max:5000,def:500,
-     ticks:[10,20,30,50,100,200,300,500,1000,2000,3000,5000],majors:[10,50,100,500,1000,5000]},
-  R:{label:"ส่วนต่างอัตรา Peak−Off-peak (บาท/kWh)",min:0.5,max:3.5,def:2.6,
-     ticks:[0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5],majors:[0.5,1,1.5,2,2.5,3,3.5]},
-  M:{label:"ผลประหยัด (บาท/ปี)",unit:"บาท/ปี"},
-  extras:[],results:q=>[row("ผลประหยัด",fmt(q,0),"บาท/ปี",1),row("เฉลี่ยต่อเดือน",fmt(q/12,0),"บาท/เดือน")],
-  note:"TOU ทั่วไปมีส่วนต่าง On/Off-peak ราว 1.6–2.7 บาท/kWh · เหมาะกับโรงงานที่ย้ายกระบวนการผลิตหนักไปช่วงกลางคืน/วันหยุดได้ · ควรเทียบค่า Demand charge ประกอบด้วย"},
- {id:"el-pf",title:"การปรับปรุงค่าตัวประกอบกำลังไฟฟ้า (Power Factor)",
-  formula:"S [kVA] = P [kW] / PF",
-  C:1,gL:p=>p,gR:pf=>1/pf,
-  L:{label:"โหลดจริง P (kW)",min:10,max:2000,def:400,
-     ticks:[10,20,30,50,100,200,300,500,1000,2000],majors:[10,50,100,500,1000,2000]},
-  R:{label:"PF ปัจจุบัน",min:0.5,max:1,def:0.75,
-     ticks:[0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.95,1],majors:[0.5,0.6,0.7,0.8,0.9,1]},
-  M:{label:"กำลังปรากฏ S (kVA)",unit:"kVA"},
-  extras:[{id:"pft",label:"PF เป้าหมาย",def:0.95}],
-  results:(q,p,pf,E)=>{const t=Math.min(1,E.pft||0.95);
-    const kvar=p*(Math.tan(Math.acos(pf))-Math.tan(Math.acos(t)));
-    return[row("kVA ปัจจุบัน",fmt(q,0),"kVA",1),
-      row("คาปาซิเตอร์ที่ต้องเพิ่ม",fmt(kvar,0),"kvar"),
-      row("กระแสลดลง",fmt((1-pf/t)*100,1),"%"),
-      row("Loss ในสายลดลง",fmt((1-(pf/t)*(pf/t))*100,1),"%")];},
-  note:"การยก PF ลดกระแสในระบบ → loss สาย/หม้อแปลงลดตาม (I²) · ปลด demand kvar และหลีกเลี่ยงค่าปรับเพาเวอร์แฟกเตอร์ (PF < 0.85)"},
- {id:"el-volt",title:"การปรับลดแรงดันด้านทุติยภูมิของหม้อแปลง",
-  formula:"kW ที่ลดได้ ≈ P<sub>load</sub> · k · ΔV/V  (k≈2, V=230V)",
-  C:2/230,gL:p=>p,gR:dv=>dv,
-  L:{label:"โหลดที่ไวต่อแรงดัน (kW)",min:10,max:2000,def:200,
-     ticks:[10,20,30,50,100,200,300,500,1000,2000],majors:[10,50,100,500,1000,2000]},
-  R:{label:"แรงดันที่ปรับลด ΔV (V)",min:2,max:20,def:8,
-     ticks:[2,3,4,5,6,8,10,12,15,20],majors:[2,4,6,8,10,15,20]},
-  M:{label:"กำลังที่ประหยัดได้ (kW)",unit:"kW"},
-  extras:[{...H8,def:4000},CE(4)],
-  results:(q,l,r,E)=>[row("กำลังที่ลดได้",fmt(q,1),"kW",1),...kwhRows(q,E)],
-  note:"ใช้ได้เมื่อแรงดันจ่ายสูงกว่าพิกัด (เช่น 240V แทน 230V) · k≈2 สำหรับโหลดความต้านทาน/หลอดไส้, โหลดมอเตอร์ประหยัดได้น้อยกว่า · ระวังอย่าลดต่ำกว่าพิกัดอุปกรณ์"},
- {id:"el-unbal",title:"การปรับกระแสไฟฟ้าแต่ละเฟสให้สมดุล",
-  formula:"Loss ที่เพิ่ม ≈ P<sub>loss เดิม</sub> · 2 · (%Unbalance)² / 100",
-  C:0.02,gL:p=>p,gR:u=>u*u,
-  L:{label:"Loss พื้นฐานมอเตอร์/สาย (kW)",min:0.1,max:10,def:2,
-     ticks:[0.1,0.15,0.2,0.3,0.5,0.7,1,1.5,2,3,5,7,10],majors:[0.1,0.2,0.5,1,2,5,10]},
-  R:{label:"ความไม่สมดุลกระแส (%)",min:1,max:5,def:3,
-     ticks:[1,1.5,2,2.5,3,3.5,4,4.5,5],majors:[1,2,3,4,5]},
-  M:{label:"Loss ที่เพิ่มขึ้น (kW)",unit:"kW"},
-  extras:[H8,CE(4)],
-  results:(q,l,r,E)=>[row("Loss ส่วนเกิน",fmt(q,2),"kW",1),...kwhRows(q,E)],
-  note:"กฎนิ้วหัวแม่มือ: ความร้อน/loss เพิ่ม ≈ 2×(unbalance%)² · แรงดันไม่สมดุลเกิน 1% ทำให้กระแสไม่สมดุลได้ 6–10% ในมอเตอร์ · แก้โดยเกลี่ยโหลด 1 เฟสให้เท่ากันทั้งสามเฟส"},
- {id:"el-light",title:"ระบบแสงสว่าง (ผลประหยัดจากการเปลี่ยนหลอด)",
-  formula:"kWh/ปี = N · ΔW · 4,000 ชม. / 1000",
-  C:4,gL:n=>n,gR:w=>w,
-  L:{label:"จำนวนโคม N (ชุด)",min:10,max:5000,def:300,
-     ticks:[10,20,30,50,100,200,300,500,1000,2000,3000,5000],majors:[10,50,100,500,1000,5000]},
-  R:{label:"วัตต์ที่ลดได้ต่อโคม ΔW (W)",min:5,max:100,def:20,
-     ticks:[5,7,10,15,20,30,40,50,70,100],majors:[5,10,20,50,100]},
-  M:{label:"พลังงานที่ประหยัด (kWh/ปี @4,000 ชม.)",unit:"kWh/ปี"},
-  extras:[{...H8,def:4000},CE(4)],
-  results:(q,l,r,E)=>{const kwh=q*E.h/4000;return[
-    row("kWh ประหยัดจริง",fmt(kwh,0),"kWh/ปี",1),
-    row("คิดเป็นเงิน",fmt(kwh*E.c,0),"บาท/ปี"),
-    row("กำลังที่ลด",fmt(l*r/1000,1),"kW")];},
-  note:"ตัวอย่าง ΔW: ฟลูออเรสเซนต์ T8 36W+บัลลาสต์แกนเหล็ก (~46W) → LED 18W ลดได้ ~28W/โคม · อย่าลืมรวมผลพลอยได้: ภาระแอร์ลดลงราว 0.3 kW ความเย็นต่อ 1 kW ไฟแสงสว่าง"},
- {id:"el-motorloss",title:"Loss ในระบบมอเตอร์",
-  formula:"P<sub>loss</sub> = P<sub>out</sub> · (1/η − 1)",
-  C:1,gL:p=>p,gR:e=>1/e-1,
-  L:{label:"กำลังเพลา P (kW)",min:1,max:500,def:37,
-     ticks:[1,2,3,5,10,20,30,50,100,200,300,500],majors:[1,5,10,50,100,500]},
-  R:{label:"ประสิทธิภาพมอเตอร์ η",min:0.80,max:0.97,def:0.90,
-     ticks:[0.80,0.82,0.84,0.86,0.88,0.90,0.92,0.94,0.95,0.96,0.97],majors:[0.80,0.84,0.88,0.92,0.95,0.97]},
-  M:{label:"กำลังสูญเสียในมอเตอร์ (kW)",unit:"kW"},
-  extras:[H8,CE(4)],
-  results:(q,l,r,E)=>[row("Loss ในมอเตอร์",fmt(q,2),"kW",1),
-    row("กำลังไฟฟ้าเข้า",fmt(l+q,1),"kW"),...kwhRows(q,E)],
-  note:"สเกล η เป็น functional scale (1/η−1) · เปลี่ยนมอเตอร์ IE1 (η~88%) → IE3/IE4 (η~93–95%) มักคืนทุน 1–3 ปีสำหรับมอเตอร์ที่เดินต่อเนื่อง"},
- {id:"el-motorsize",title:"การเลือกใช้มอเตอร์ให้เหมาะสมกับภาระโหลด",
-  formula:"Copper loss ≈ 0.04 · P<sub>rated</sub> · LF²  (+ Iron loss คงที่ ~0.03·P<sub>rated</sub>)",
-  C:0.04,gL:p=>p,gR:lf=>lf*lf,
-  L:{label:"พิกัดมอเตอร์ (kW)",min:1,max:500,def:55,
-     ticks:[1,2,3,5,10,20,30,50,100,200,300,500],majors:[1,5,10,50,100,500]},
-  R:{label:"Load Factor (สัดส่วนโหลดจริง)",min:0.1,max:1.2,def:0.4,
-     ticks:[0.1,0.15,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,1.1,1.2],majors:[0.1,0.2,0.3,0.5,0.7,1,1.2]},
-  M:{label:"Copper loss (kW)",unit:"kW"},
-  extras:[H8,CE(4)],
-  results:(q,p,lf,E)=>{const fe=0.03*p,tot=q+fe,eta=lf*p/(lf*p+tot)*100;
-    return[row("Loss รวม (Cu+Fe)",fmt(tot,2),"kW",1),
-      row("η ใช้งานจริงโดยประมาณ",fmt(eta,1),"%"),...kwhRows(tot,E)];},
-  note:"มอเตอร์โหลดต่ำกว่า ~40% ประสิทธิภาพและ PF ตกแรง เพราะ Iron loss คงที่กินสัดส่วนสูง · ควรเลือกพิกัดให้เดินที่ 60–90% ของ nameplate"},
- {id:"el-vsd",title:"การใช้อุปกรณ์ปรับความเร็วรอบมอเตอร์ (VSD)",
-  formula:"P = P<sub>rated</sub> · (N/N<sub>rated</sub>)³  (Affinity law: พัดลม/ปั๊ม)",
-  C:1e-6,gL:p=>p,gR:n=>n*n*n,
-  L:{label:"กำลังที่ความเร็วเต็ม (kW)",min:1,max:500,def:75,
-     ticks:[1,2,3,5,10,20,30,50,100,200,300,500],majors:[1,5,10,50,100,500]},
-  R:{label:"ความเร็วรอบ (% ของพิกัด)",min:30,max:100,def:70,
-     ticks:[30,35,40,45,50,60,70,80,90,100],majors:[30,40,50,60,70,80,90,100]},
-  M:{label:"กำลังที่ใช้จริง (kW)",unit:"kW"},
-  extras:[H8,CE(4)],
-  results:(q,p,n,E)=>{const sv=p-q,kwh=sv*E.h;
-    return[row("กำลังที่ใช้",fmt(q,1),"kW",1),
-      row("ประหยัดเทียบเดินเต็มรอบ",fmt(sv,1),"kW"),
-      row("พลังงานประหยัด",fmt(kwh,0),"kWh/ปี"),
-      row("คิดเป็นเงิน",fmt(kwh*E.c,0),"บาท/ปี")];},
-  note:"ลดรอบเหลือ 70% → ใช้กำลังเพียง ~34% · ใช้ได้กับโหลดแรงบิดแปรผัน (พัดลม ปั๊มหอยโข่ง) ที่เดิมหรี่ด้วยแดมเปอร์/วาล์ว · โหลดแรงบิดคงที่ (สายพาน คอมเพรสเซอร์ลูกสูบ) ประหยัดเชิงเส้นเท่านั้น"}
-]},
-{name:"กลุ่มระบบทำความเย็น",items:[
- {id:"cool-ac",title:"ระบบปรับอากาศ (กำลังไฟฟ้าจากภาระความเย็น)",
-  formula:"P [kW] = 3.517 · TR / COP",
-  C:3.517,gL:tr=>tr,gR:cop=>1/cop,
-  L:{label:"ภาระความเย็น (TR)",min:1,max:2000,def:100,
-     ticks:[1,2,3,5,10,20,30,50,100,200,300,500,1000,2000],majors:[1,5,10,50,100,500,1000,2000]},
-  R:{label:"COP ของระบบ",min:2,max:7,def:3.5,
-     ticks:[2,2.5,3,3.5,4,4.5,5,5.5,6,6.5,7],majors:[2,3,4,5,6,7]},
-  M:{label:"กำลังไฟฟ้า (kW)",unit:"kW"},
-  extras:[{...H8,def:4000},CE(4)],
-  results:(q,tr,cop,E)=>[row("กำลังไฟฟ้า",fmt(q,1),"kW",1),
-    row("ดัชนี kW/TR",fmt(q/tr,2),"kW/TR"),...kwhRows(q,E)],
-  note:"ยก COP 3.0 → 3.5 ลดไฟลง ~14% · แนวทาง: ตั้งอุณหภูมิเหมาะสม ล้างคอยล์ ลดภาระความร้อนแฝง/รั่วซึม เลือกเครื่องประสิทธิภาพสูง (SEER/IEER)"},
- {id:"cool-chw",title:"ระบบผลิตน้ำเย็น (ภาระความเย็นจากอัตราไหลน้ำเย็น)",
-  formula:"TR = 4.19 · ṁ [l/s] · ΔT / 3.517 = 1.191 · ṁ · ΔT",
-  C:1.191,gL:f=>f,gR:dt=>dt,
-  L:{label:"อัตราไหลน้ำเย็น (l/s)",min:1,max:200,def:30,
-     ticks:[1,2,3,5,10,20,30,50,100,150,200],majors:[1,5,10,50,100,200]},
-  R:{label:"ΔT น้ำเย็น เข้า−ออก (°C)",min:2,max:10,def:5,
-     ticks:[2,3,4,5,6,7,8,9,10],majors:[2,4,5,6,8,10]},
-  M:{label:"ภาระความเย็น (TR)",unit:"TR"},
-  extras:[{id:"cop",label:"COP ชิลเลอร์",def:5},{...H8,def:6000},CE(4)],
-  results:(q,f,dt,E)=>{const kwc=q*3.517,kwi=kwc/(E.cop||5);
-    return[row("ภาระความเย็น",fmt(q,1),"TR",1),
-      row("ความร้อนที่ดึงออก",fmt(kwc,0),"kW"),
-      row("ไฟฟ้าชิลเลอร์",fmt(kwi,1),"kW"),...kwhRows(kwi,E)];},
-  note:"ΔT ต่ำผิดปกติ (< 4°C) ที่อัตราไหลสูง = ปั๊มน้ำเย็นทำงานเกินจำเป็น (Low ΔT syndrome) · ออกแบบ ΔT 5–7°C แล้วคุมอัตราไหลด้วย VSD จะประหยัดทั้งปั๊มและชิลเลอร์"},
- {id:"cool-ct",title:"ระบบหอผึ่งน้ำ (Cooling Tower)",
-  formula:"Q<sub>reject</sub> [kW] = 4.19 · ṁ [l/s] · Range [°C]",
-  C:4.19,gL:f=>f,gR:rg=>rg,
-  L:{label:"อัตราไหลน้ำหล่อเย็น (l/s)",min:5,max:1000,def:100,
-     ticks:[5,10,20,30,50,100,200,300,500,1000],majors:[5,10,50,100,500,1000]},
-  R:{label:"Range = T เข้า − T ออก (°C)",min:2,max:15,def:5,
-     ticks:[2,3,4,5,7,10,12,15],majors:[2,5,10,15]},
-  M:{label:"ความร้อนที่ระบาย (kW)",unit:"kW"},
-  extras:[],
-  results:q=>[row("ความร้อนที่ระบาย",fmt(q,0),"kW",1),
-    row("น้ำระเหยโดยประมาณ",fmt(q*0.001475,2),"m³/h"),
-    row("เทียบเป็นภาระ",fmt(q/3.517,0),"TR (heat rejection)")],
-  note:"Approach (T น้ำออก − T กระเปาะเปียก) ยิ่งแคบยิ่งดีต่อชิลเลอร์: ลดอุณหภูมิน้ำระบายความร้อน 1°C ประหยัดไฟชิลเลอร์ ~1.5–3% · ดูแลฟิลเลอร์ หัวกระจายน้ำ และปรับพัดลมด้วย VSD ตามกระเปาะเปียก"}
-]},
-{name:"กลุ่มความร้อน",items:[
- {id:"heat-boiler",title:"ระบบหม้อไอน้ำ (การสูญเสียปล่องไอเสีย — Siegert)",
-  formula:"%Stack loss = k · (T<sub>gas</sub> − T<sub>air</sub>) / %CO₂  (k = 0.55 น้ำมันเตา)",
-  C:0.55,gL:dt=>dt,gR:co2=>1/co2,
-  L:{label:"T ปล่อง − T อากาศ (°C)",min:80,max:350,def:200,
-     ticks:[80,100,120,150,180,200,250,300,350],majors:[80,100,150,200,250,300,350]},
-  R:{label:"%CO₂ ในไอเสีย",min:3,max:15,def:10,
-     ticks:[3,4,5,6,7,8,9,10,12,15],majors:[3,5,8,10,12,15]},
-  M:{label:"การสูญเสียปล่อง (%)",unit:"%"},
-  extras:[{id:"fu",label:"พลังงานเชื้อเพลิงเข้า (kW)",def:2000},H8,CE(1.2)],
-  results:(q,l,r,E)=>{const kw=q/100*(E.fu||0);
-    return[row("Stack loss",fmt(q,1),"%",1),
-      row("คิดเป็นกำลัง",fmt(kw,0),"kW"),...kwhRows(kw,E)];},
-  note:"%CO₂ ต่ำ = อากาศเกิน (excess air) มาก → ความร้อนถูกพัดทิ้งทางปล่อง · จูนหัวเผาให้ O₂ ~3–4% และติด economizer กู้ความร้อนปล่อง ทุกๆ 20°C ที่ลดได้ ≈ ประหยัดเชื้อเพลิง ~1% · ก๊าซธรรมชาติใช้ k ≈ 0.40"},
- {id:"heat-furnace",title:"ระบบเตาเผาอุตสาหกรรม (ความร้อนทิ้งทางไอเสีย)",
-  formula:"Q [kW] = V [Nm³/h] · 1.38 kJ/Nm³K · ΔT / 3600",
-  C:1.38/3600,gL:v=>v,gR:dt=>dt,
-  L:{label:"ปริมาตรไอเสีย (Nm³/h)",min:100,max:50000,def:5000,
-     ticks:[100,200,300,500,1000,2000,3000,5000,10000,20000,30000,50000],majors:[100,500,1000,5000,10000,50000]},
-  R:{label:"T ไอเสีย − T อากาศ (°C)",min:100,max:900,def:500,
-     ticks:[100,150,200,300,400,500,600,700,800,900],majors:[100,200,300,500,700,900]},
-  M:{label:"ความร้อนทิ้ง (kW)",unit:"kW"},
-  extras:[{...H8,def:6000},CE(1.2)],
-  results:(q,l,r,E)=>[row("ความร้อนทิ้ง",fmt(q,0),"kW",1),
-    row("กู้คืนได้ (~50%)",fmt(q*0.5,0),"kW"),...kwhRows(q,E)],
-  note:"ไอเสียเตาที่ 500–900°C คือแหล่งกู้พลังงานชั้นดี: recuperator อุ่นอากาศเผาไหม้กู้ได้ 30–60% · อุ่นอากาศเผาไหม้ทุก 100°C ประหยัดเชื้อเพลิง ~5% · อย่าลืมผนึกรอยรั่วและปิดช่องเปิดเตา"},
- {id:"heat-elec",title:"ระบบทำความร้อนด้วยไฟฟ้า (พลังงานอุ่นวัสดุ)",
-  formula:"Q [kW] = ṁ [kg/h] · c<sub>p</sub> · ΔT / 3600  (c<sub>p</sub> = 0.5 kJ/kg·K โลหะ)",
-  C:0.5/3600,gL:m=>m,gR:dt=>dt,
-  L:{label:"อัตราป้อนวัสดุ (kg/h)",min:10,max:10000,def:1000,
-     ticks:[10,20,30,50,100,200,300,500,1000,2000,3000,5000,10000],majors:[10,50,100,500,1000,5000,10000]},
-  R:{label:"ΔT ที่ต้องอุ่นขึ้น (°C)",min:10,max:1000,def:200,
-     ticks:[10,20,30,50,100,200,300,500,700,1000],majors:[10,50,100,300,500,1000]},
-  M:{label:"ความร้อนสุทธิที่ต้องการ (kW)",unit:"kW"},
-  extras:[{id:"eta",label:"ประสิทธิภาพระบบ η",def:0.75},H8,CE(4)],
-  results:(q,l,r,E)=>{const inp=q/(E.eta||0.75),loss=inp-q;
-    return[row("ความร้อนสุทธิ",fmt(q,1),"kW",1),
-      row("ไฟฟ้าเข้า (÷η)",fmt(inp,1),"kW"),
-      row("สูญเสีย",fmt(loss,1),"kW"),...kwhRows(loss,E)];},
-  note:"น้ำใช้ c_p = 4.19, อะลูมิเนียม 0.90, เหล็ก 0.46 kJ/kg·K (คูณสัดส่วนจากค่าฐาน 0.5 ได้) · การหุ้มฉนวน ปิดฝา และใช้ induction แทน resistance ยกประสิทธิภาพจาก ~60% เป็น 85%+"},
- {id:"heat-rad",title:"การสูญเสียความร้อนแบบแผ่รังสี (Stefan–Boltzmann)",
-  formula:"q = ε · σ · (T<sub>s</sub>⁴ − T<sub>a</sub>⁴)  [W/m²]",
-  C:1,gL:e=>e,gR:(ts,E)=>SIG*(P4(ts+273.15)-P4((E.ta??35)+273.15)),
-  L:{label:"สภาพเปล่งรังสี ε",min:0.1,max:1,def:0.85,
-     ticks:[0.1,0.12,0.15,0.2,0.25,0.3,0.4,0.5,0.6,0.7,0.8,0.9,0.95,1],majors:[0.1,0.2,0.3,0.5,0.7,0.9,1]},
-  R:{label:"อุณหภูมิผิว Ts (°C)",min:50,max:600,def:180,
-     ticks:[50,60,70,80,90,100,120,140,160,180,200,250,300,350,400,450,500,550,600],
-     majors:[50,80,100,140,180,250,300,400,500,600]},
-  M:{label:"ฟลักซ์แผ่รังสี (W/m²)",unit:"W/m²"},
-  extras:[{id:"ta",label:"T แวดล้อม Ta (°C)",def:35,rebuild:true},
-          {id:"A",label:"พื้นที่ผิว (m²)",def:10},{...H8},CE(1.2)],
-  results:(q,l,r,E)=>{const kw=q*(E.A||0)/1000;
-    return[row("ฟลักซ์แผ่รังสี",fmt(q,0),"W/m²",1),
-      row("รวมทั้งพื้นที่",fmt(kw,2),"kW"),...kwhRows(kw,E)];},
-  note:"สเกล Ts เป็น functional scale — เปลี่ยน Ta แล้วกราฟวาดสเกลใหม่อัตโนมัติ · ε: เหล็กออกไซด์ 0.8–0.95, สีอะลูมิเนียม 0.4–0.55, แผ่นอะลูมิเนียมหุ้ม 0.1–0.2 · ตัวเลขนี้ยังไม่รวมการพาความร้อน (h ≈ 5–15 W/m²K) ซึ่งมักใกล้เคียงกันอีกก้อน"},
- {id:"heat-hx",title:"ระบบ Heat Exchanger",
-  formula:"Q [kW] = U · A · LMTD / 1000  (สเกลที่ U = 500 W/m²K)",
-  C:0.5,gL:a=>a,gR:t=>t,
-  L:{label:"พื้นที่แลกเปลี่ยน A (m²)",min:1,max:500,def:50,
-     ticks:[1,2,3,5,10,20,30,50,100,200,300,500],majors:[1,5,10,50,100,500]},
-  R:{label:"LMTD (°C)",min:2,max:60,def:15,
-     ticks:[2,3,4,5,7,10,15,20,30,40,50,60],majors:[2,5,10,20,40,60]},
-  M:{label:"ความร้อนถ่ายเท (kW @U=500)",unit:"kW"},
-  extras:[{id:"U",label:"U จริง (W/m²K)",def:500},{...H8},CE(1.2)],
-  results:(q,l,r,E)=>{const kw=q*(E.U||500)/500;
-    return[row("ความร้อนถ่ายเท",fmt(kw,0),"kW",1),
-      row("เทียบพลังงาน/ปี",fmt(kw*E.h,0),"kWh/ปี"),
-      row("มูลค่าความร้อน",fmt(kw*E.h*E.c,0),"บาท/ปี")];},
-  note:"U ทั่วไป: น้ำ-น้ำ 800–1,500 · ไอน้ำ-น้ำ 1,000–3,000 · ก๊าซ-น้ำ 20–60 W/m²K · ตะกรันหนา 1 mm อาจลด U ลง 30–40% — LMTD ที่ต้องเพิ่มขึ้นเพื่อชดเชยคือพลังงานที่จ่ายแพงขึ้นทุกชั่วโมง"}
-]},
-{name:"กลุ่มระบบเครื่องกล",items:[
- {id:"air-leak",title:"ลมอัด ① การสูญเสียจากลมรั่ว (Leakage Loss)",
-  formula:"Q [l/s] = 0.524 · d² [mm] · (P<sub>g</sub>+1) [bar]",
-  C:0.5236,gL:d=>d*d,gR:p=>p+1,
-  L:{label:"Ø รูรั่ว d (mm)",min:0.5,max:10,def:3,
-     ticks:[0.5,0.6,0.7,0.8,0.9,1,1.2,1.5,2,2.5,3,3.5,4,5,6,7,8,9,10],
-     majors:[0.5,1,1.5,2,3,4,5,6,8,10]},
-  R:{label:"ความดันเกจ (bar g)",min:1,max:13,def:7,
-     ticks:[1,1.5,2,2.5,3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10,10.5,11,11.5,12,12.5,13],
-     majors:[1,2,3,4,5,6,7,8,9,10,11,12,13]},
-  M:{label:"อัตราลมรั่ว Q (l/s)",unit:"l/s"},
-  extras:[{id:"sec",label:"SEC (kWh/m³)",def:0.12},H8,CE(4)],
-  results:(q,l,r,E)=>{const kwh=q/1000*3600*E.h*(E.sec||0.12);
-    return[row("อัตราลมรั่ว",fmt(q,1),"l/s",1),
-      row("เทียบ FAD",fmt(q*3.6,1),"m³/h"),
-      row("พลังงานสูญเสีย",fmt(kwh,0),"kWh/ปี"),
-      row("คิดเป็นเงิน",fmt(kwh*E.c,0),"บาท/ปี")];},
-  note:"รู 3 mm ที่ 7 bar(g) รั่ว ~38 l/s ≈ 130,000 kWh/ปี · ตรวจรั่วด้วย ultrasonic detector และทำ Load/Unload test: %รั่ว = T_load/(T_load+T_unload)×100 ช่วงไม่มีการผลิต"},
- {id:"air-pdrop",title:"ลมอัด ② ความดันตกในท่อ (Pressure Drop)",
-  formula:"ΔP [bar/100m] = 1.6×10⁸ · Q<sup>1.85</sup> · 100 / (d⁵ · 8 bar)",
-  C:2e9,gL:q=>Math.pow(q/1000,1.85),gR:d=>1/Math.pow(d,5),
-  L:{label:"อัตราไหลลม Q (l/s FAD)",min:10,max:150,def:60,
-     ticks:[10,12,15,20,25,30,40,50,60,80,100,120,150],majors:[10,15,20,30,50,80,100,150]},
-  R:{label:"Ø ในท่อ d (mm)",min:32,max:125,def:65,
-     ticks:[32,40,50,65,80,100,125],majors:[32,40,50,65,80,100,125]},
-  M:{label:"ความดันตก (bar ต่อ 100 m)",unit:"bar/100m"},
-  extras:[{id:"Lm",label:"ความยาวท่อรวม fitting (m)",def:200},
-          {id:"kc",label:"กำลังคอมเพรสเซอร์ (kW)",def:75},H8,CE(4)],
-  results:(q,l,r,E)=>{const dp=q*(E.Lm||0)/100,ex=0.07*dp,kwh=(E.kc||0)*ex*E.h;
-    return[row("ΔP ทั้งเส้นท่อ",fmt(dp,3),"bar",1),
-      row("ไฟคอมเพรสเซอร์เพิ่ม",fmt(ex*100,1),"% (≈7%/bar)"),
-      row("พลังงานส่วนเกิน",fmt(kwh,0),"kWh/ปี"),
-      row("คิดเป็นเงิน",fmt(kwh*E.c,0),"บาท/ปี")];},
-  note:"สเกลคิดที่ความดันระบบ 8 bar สัมบูรณ์ · เกณฑ์ออกแบบที่ดี: ΔP รวมทั้งระบบไม่เกิน 0.1–0.3 bar · ΔP แปรตาม 1/d⁵ — ขยายท่อขึ้นหนึ่งขนาดมักถูกกว่าจ่ายค่าไฟส่วนเกินตลอดอายุ"},
- {id:"air-overp",title:"ลมอัด ③ ความดันเกินจำเป็น (Over-pressurization)",
-  formula:"P [kW] = (k/(k−1)) · P₁Q/η · [(P₂/P₁)<sup>0.286</sup> − 1],  η = 0.82",
-  C:3.5*101.325/0.82/60,gL:q=>q,gR:p=>Math.pow((p+1)/1.013,0.2857)-1,
-  L:{label:"อัตราผลิตลม FAD (m³/min)",min:1,max:100,def:20,
-     ticks:[1,1.5,2,3,4,5,7,10,15,20,30,40,50,70,100],majors:[1,2,5,10,20,50,100]},
-  R:{label:"ความดันจ่าย (bar g)",min:4,max:13,def:7,
-     ticks:[4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10,10.5,11,11.5,12,12.5,13],
-     majors:[4,5,6,7,8,9,10,11,12,13]},
-  M:{label:"กำลังอัดที่ต้องใช้ (kW)",unit:"kW"},
-  extras:[{id:"pt",label:"ความดันเป้าหมาย (bar g)",def:6},H8,CE(4)],
-  results:(q,f,p,E)=>{const gR=x=>Math.pow((x+1)/1.013,0.2857)-1;
-    const kwT=(3.5*101.325/0.82/60)*f*gR(Math.min(p,E.pt??6));
-    const sv=q-kwT,kwh=sv*E.h;
-    return[row("กำลังที่ความดันปัจจุบัน",fmt(q,1),"kW",1),
-      row("กำลังที่ความดันเป้าหมาย",fmt(kwT,1),"kW"),
-      row("ประหยัดได้",fmt(kwh,0),"kWh/ปี"),
-      row("คิดเป็นเงิน",fmt(kwh*E.c,0),"บาท/ปี")];},
-  note:"สเกลความดันเป็น functional scale ตามงานอัดแอเดียแบติก · กฎนิ้วหัวแม่มือ: ลดความดันตั้ง 1 bar ประหยัดไฟ ~6–8% · มักตั้งเผื่อไว้ชดเชย ΔP ท่อ — แก้ที่ท่อ/ตัวกรองก่อนแล้วค่อยลดความดัน"},
- {id:"mech-pump",title:"การสูญเสียพลังงานในระบบปั๊มส่งน้ำ",
-  formula:"P<sub>shaft</sub> [kW] = 9.81 · Q [m³/s] · H / η  (สเกลที่ η = 0.65)",
-  C:9.81/1000/0.65,gL:q=>q,gR:h=>h,
-  L:{label:"อัตราไหล Q (l/s)",min:1,max:500,def:50,
-     ticks:[1,2,3,5,10,20,30,50,100,200,300,500],majors:[1,5,10,50,100,500]},
-  R:{label:"เฮดรวม H (m)",min:5,max:100,def:40,
-     ticks:[5,7,10,15,20,30,40,50,70,100],majors:[5,10,20,40,70,100]},
-  M:{label:"กำลังเพลาปั๊ม (kW @η=0.65)",unit:"kW"},
-  extras:[{id:"eta",label:"η ปั๊มจริง",def:0.65},H8,CE(4)],
-  results:(q,f,h,E)=>{const kw=q*0.65/(E.eta||0.65),hyd=q*0.65,loss=kw-hyd;
-    return[row("กำลังเพลา",fmt(kw,1),"kW",1),
-      row("กำลังไฮดรอลิกสุทธิ",fmt(hyd,1),"kW"),
-      row("สูญเสียในปั๊ม",fmt(loss,1),"kW"),...kwhRows(loss,E)];},
-  note:"เฮดเกินจากการหรี่วาล์ว = พลังงานทิ้งล้วนๆ (ทุก 10 m ของ 50 l/s ≈ 7.5 kW) · ปั๊มเดินห่างจุด BEP ทำ η ตกและสึกเร็ว · ใช้ VSD แทนวาล์วหรี่ และตัดใบพัด (impeller trim) เมื่อเฮดเกินถาวร"},
- {id:"mech-hyd",title:"การสูญเสียพลังงานในระบบปั๊มไฮดรอลิก",
-  formula:"P<sub>hyd</sub> [kW] = p [bar] · Q [l/min] / 600",
-  C:1/600,gL:q=>q,gR:p=>p,
-  L:{label:"อัตราไหลน้ำมัน Q (l/min)",min:5,max:500,def:60,
-     ticks:[5,10,20,30,50,100,200,300,500],majors:[5,10,50,100,500]},
-  R:{label:"ความดันระบบ p (bar)",min:20,max:350,def:150,
-     ticks:[20,30,50,70,100,150,200,250,300,350],majors:[20,50,100,200,300,350]},
-  M:{label:"กำลังไฮดรอลิก (kW)",unit:"kW"},
-  extras:[{id:"eta",label:"η รวมปั๊ม+ระบบ",def:0.7},{...H8,def:4000},CE(4)],
-  results:(q,f,p,E)=>{const inp=q/(E.eta||0.7),loss=inp-q;
-    return[row("กำลังไฮดรอลิก",fmt(q,1),"kW",1),
-      row("ไฟฟ้าเข้า (÷η)",fmt(inp,1),"kW"),
-      row("สูญเสีย (ความร้อนน้ำมัน)",fmt(loss,1),"kW"),...kwhRows(loss,E)];},
-  note:"ความสูญเสียใหญ่: relief valve ระบายทิ้งขณะรอ (idle unloading), ความดันตั้งเกินงานจริง, ท่อ/วาล์วหรี่ · เปลี่ยนเป็นปั๊มแบบ variable displacement หรือ servo-drive ลดพลังงานช่วงรอได้ 40–70%"},
- {id:"mech-blower",title:"การสูญเสียพลังงานของ Blower แบบต่างๆ",
-  formula:"P [kW] = Q [m³/s] · Δp [kPa] / η  (สเกลที่ η = 0.65)",
-  C:1/3600/0.65,gL:q=>q,gR:dp=>dp,
-  L:{label:"อัตราไหลอากาศ Q (m³/h)",min:100,max:100000,def:10000,
-     ticks:[100,200,300,500,1000,2000,3000,5000,10000,20000,30000,50000,100000],
-     majors:[100,500,1000,5000,10000,50000,100000]},
-  R:{label:"ความดันเพิ่ม Δp (kPa)",min:0.5,max:50,def:5,
-     ticks:[0.5,0.7,1,1.5,2,3,5,7,10,15,20,30,50],majors:[0.5,1,2,5,10,20,50]},
-  M:{label:"กำลังเพลา (kW @η=0.65)",unit:"kW"},
-  extras:[{id:"eta",label:"η จริงของ blower",def:0.65},H8,CE(4)],
-  results:(q,f,dp,E)=>{const kw=q*0.65/(E.eta||0.65),hyd=q*0.65,loss=kw-hyd;
-    return[row("กำลังเพลา",fmt(kw,1),"kW",1),
-      row("กำลังอากาศสุทธิ",fmt(hyd,1),"kW"),
-      row("สูญเสียใน blower",fmt(loss,1),"kW"),...kwhRows(loss,E)];},
-  note:"η ตามชนิด: centrifugal (backward-curved) 0.70–0.80 · forward-curved 0.55–0.65 · roots/lobe 0.50–0.60 · เดินหรี่แดมเปอร์ที่ 70% ลม ยังกินไฟ ~90% — VSD กินเพียง ~40% (affinity law)"}
-]}];
+/* ---------------- seed data ---------------- */
+let USERS = [
+  { id:'u-admin',  email:'admin@portal.com',  password:'admin123',  role:'admin',  access:'active' },
+  { id:'u-member', email:'member@portal.com', password:'member123', role:'member', access:'active' },
+];
+let CATS = [
+  { id:'c1', name:'Productivity' },
+  { id:'c2', name:'Design' },
+  { id:'c3', name:'Local Tools' },
+];
+let APPS = [
+  { id:'a1', name:'Excalidraw',    descr:'Collaborative whiteboard for sketches and diagrams.', url:'https://excalidraw.com', catId:'c2', local:false },
+  { id:'a2', name:'Example Tool',  descr:'External placeholder application for demos.',         url:'https://example.com',   catId:'c1', local:false },
+];
+let PAYMENTS = [
+  { id:'p1', email:'member@portal.com', reference:'TRF-88412', amount:'990', date:'2026-07-01', status:'verified' },
+];
 
-/* ---------- เอนจินโนโมกราฟ ---------- */
-const SVGNS="http://www.w3.org/2000/svg";
-const svg=document.getElementById("nomo");
-const TOP=70,BOT=730,HH=BOT-TOP,XL=118,XR=642,Wd=XR-XL;
-let cur=null,st={},geo={};
+/* ---------------- session state ---------------- */
+let ME = null;
+let VIEW = 'list', CATF = 'all';
+let TABS = [], ACTIVE = 'home';
+let EDIT_APP = null, EDIT_CAT = null, AUTH_MODE = 'login';
+let UPLOAD_URL = '';          // blob: link created by the last upload
+let UPLOAD_CONTENT = '';      // raw HTML of the uploaded file (for persistence)
+let ADMIN_TAB = 'apps';
+const LS_KEY = 'appdeck.v1';  // localStorage key
 
-function el(n,a){const e=document.createElementNS(SVGNS,n);for(const k in a)e.setAttribute(k,a[k]);return e;}
-function txt(x,y,s,cls,an){const t=el("text",{x,y,class:cls,"text-anchor":an||"middle"});t.textContent=s;return t;}
-const gv=(g,v)=>g.length>1?g(v,st.E):g(v);          // g อาจรับ extras
-const fL=v=>Math.log10(gv(cur.gL,v)), fR=v=>Math.log10(gv(cur.gR,v));
-
-function buildChart(){
-  svg.innerHTML="";
-  const F1a=fL(cur.L.min),F1b=fL(cur.L.max),F1lo=Math.min(F1a,F1b),F1hi=Math.max(F1a,F1b);
-  const F3a=fR(cur.R.min),F3b=fR(cur.R.max),F3lo=Math.min(F3a,F3b),F3hi=Math.max(F3a,F3b);
-  const m1=HH/(F1hi-F1lo),m3=HH/(F3hi-F3lo),m2=m1*m3/(m1+m3);
-  const XM=XL+Wd*m1/(m1+m3);
-  geo={m1,m3,m2,XM,F1hi,F3hi,F2hi:F1hi+F3hi,F2lo:F1lo+F3lo};
-
-  const yL=v=>TOP+m1*(F1hi-fL(v)), yR=v=>TOP+m3*(F3hi-fR(v)),
-        yM=f2=>TOP+m2*(geo.F2hi-f2);
-  geo.yL=yL;geo.yR=yR;geo.yM=yM;
-
-  const axis=(x,t,yTitle)=>{svg.appendChild(el("line",{x1:x,y1:TOP-8,x2:x,y2:BOT+8,class:"scale-line"}));
-    svg.appendChild(txt(x,yTitle,t,"axistitle"));};
-  axis(XL,cur.L.label,TOP-22); axis(XM,cur.M.label,TOP-50); axis(XR,cur.R.label,TOP-22);
-  svg.appendChild(el("line",{x1:XM,y1:TOP-44,x2:XM,y2:TOP-30,class:"tick"})); // เส้นชี้จากชื่อลงสเกลกลาง
-
-  const tick=(x,y,side,lb,minor)=>{const len=minor?5:9,dx=side==="L"?-len:len;
-    svg.appendChild(el("line",{x1:x,y1:y,x2:x+dx,y2:y,class:"tick"+(minor?" minor":"")}));
-    if(lb!==null)svg.appendChild(txt(x+dx+(side==="L"?-4:4),y+4,lb,"ticklabel",side==="L"?"end":"start"));};
-
-  cur.L.ticks.forEach(v=>{const mj=cur.L.majors.includes(v);
-    tick(XL,yL(v),"L",mj?kfmt(v):null,!mj);});
-  cur.R.ticks.forEach(v=>{const mj=cur.R.majors.includes(v);
-    tick(XR,yR(v),"R",mj?kfmt(v):null,!mj);});
-
-  // สเกลกลาง: สร้าง tick อัตโนมัติแบบ 1-1.5-2-3-5-7 ต่อทศวรรษ
-  const qC=cur.C, qlo=qC*Math.pow(10,geo.F2lo), qhi=qC*Math.pow(10,geo.F2hi);
-  for(let e=Math.floor(Math.log10(qlo))-1;e<=Math.ceil(Math.log10(qhi));e++){
-    [1,1.5,2,3,4,5,7].forEach(mn=>{
-      const q=mn*Math.pow(10,e); if(q<qlo*0.999||q>qhi*1.001)return;
-      const mj=[1,2,5].includes(mn);
-      tick(XM,yM(Math.log10(q/qC)),"L",mj?kfmt(q):null,!mj);
-    });}
-
-  st.iso=el("line",{class:"iso"});svg.appendChild(st.iso);
-  st.dot=el("circle",{r:5,class:"readdot"});svg.appendChild(st.dot);
-  st.hL=el("circle",{r:9,class:"handle"});svg.appendChild(st.hL);
-  st.hR=el("circle",{r:9,class:"handle"});svg.appendChild(st.hR);
-  st.tag=txt(0,0,"","readtag","start");svg.appendChild(st.tag);
-  st.tagL=txt(0,0,"","readtag","start");svg.appendChild(st.tagL);   // ป้ายค่าจุดสเกลซ้าย
-  st.tagR=txt(0,0,"","readtag","end");svg.appendChild(st.tagR);     // ป้ายค่าจุดสเกลขวา
-  render();
-}
-
-function render(){
-  const {yL,yR,yM,XM}=geo;
-  const y1=yL(st.vL),y2=yR(st.vR);
-  st.iso.setAttribute("x1",XL);st.iso.setAttribute("y1",y1);
-  st.iso.setAttribute("x2",XR);st.iso.setAttribute("y2",y2);
-  st.hL.setAttribute("cx",XL);st.hL.setAttribute("cy",y1);
-  st.hR.setAttribute("cx",XR);st.hR.setAttribute("cy",y2);
-  const q=cur.C*gv(cur.gL,st.vL)*gv(cur.gR,st.vR);
-  const ym=yM(Math.log10(q/cur.C));
-  st.dot.setAttribute("cx",XM);st.dot.setAttribute("cy",ym);
-  const tagLeft=XM>420;
-  st.tag.setAttribute("x",XM+(tagLeft?-14:14));st.tag.setAttribute("y",ym-12);
-  st.tag.setAttribute("text-anchor",tagLeft?"end":"start");
-  st.tag.textContent="≈ "+kfmt(q)+" "+cur.M.unit;
-
-  // ป้ายค่าที่จุดบนสเกลซ้าย/ขวา (หน่วยดึงจากวงเล็บท้ายชื่อสเกล)
-  const unitOf=lb=>{const m=lb.match(/\(([^()]+)\)\s*$/);return m?m[1]:"";};
-  st.tagL.setAttribute("x",XL+14);st.tagL.setAttribute("y",y1-12);
-  st.tagL.textContent=kfmt(+st.vL.toPrecision(3))+" "+unitOf(cur.L.label);
-  st.tagR.setAttribute("x",XR-14);st.tagR.setAttribute("y",y2-12);
-  st.tagR.textContent=kfmt(+st.vR.toPrecision(3))+" "+unitOf(cur.R.label);
-
-  document.getElementById("in-vL").value=+st.vL.toPrecision(4);
-  document.getElementById("in-vR").value=+st.vR.toPrecision(4);
-  const rows=cur.results(q,st.vL,st.vR,st.E);
-
-  // ---- จุดคุ้มทุน: หาแถวมูลค่า "บาท/ปี" แล้วหารด้วยเงินลงทุน ----
-  const bahtRow=rows.find(r=>r.u==="บาท/ปี");
-  const baht=bahtRow?parseFloat(String(bahtRow.v).replace(/,/g,"")):NaN;
-  const invRows=[];
-  if(st.inv>0&&isFinite(baht)&&baht>0){
-    const pb=st.inv/baht;
-    invRows.push({l:"จุดคุ้มทุน (Simple Payback)",v:fmt(pb,2),u:"ปี",good:1});
-    invRows.push({l:"เทียบเป็นระยะเวลา",v:fmt(pb*12,1),u:"เดือน"});
-  }else if(st.inv>0){
-    invRows.push({l:"จุดคุ้มทุน",v:"–",u:"ไม่มีมูลค่า บาท/ปี ให้เทียบ"});
+/* ================================================================
+   Persistence (localStorage)
+   Data survives page reloads. Uploaded local apps keep their HTML
+   content (blob URLs are ephemeral), and the blob URL is regenerated
+   on load. Note: this is a client-side demo — storing passwords and
+   gating access in the browser is NOT secure; the Flask+SQLite build
+   is the one to use for anything real.
+   ================================================================ */
+let PERSIST_OK = true;
+function persist(){
+  if(!PERSIST_OK) return;
+  try{
+    const data = {
+      users: USERS, cats: CATS, payments: PAYMENTS,
+      me: ME ? ME.id : null,
+      // Drop the ephemeral blob: URL; keep content to rebuild it on load.
+      apps: APPS.map(a => a.local ? { ...a, url:'' } : a),
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+  }catch(e){
+    // Most likely quota exceeded (a large uploaded app) or storage disabled.
+    console.warn('AppDeck: could not save to localStorage —', e && e.name);
   }
-  // สีตัวเลข: แดง = ค่าพลังงาน/เงินที่สูญเสียต่อปี, เขียวเข้ม = จุดคุ้มทุน
-  const cls=r=>r.good?" good":(r.hot||/kWh\/ปี|บาท\/ปี/.test(r.u))?" hot":"";
-  const rHTML=r=>`<div class="res${cls(r)}"><div class="v">${r.v}</div><div class="u">${r.l} · ${r.u}</div></div>`;
-  document.getElementById("m-results").innerHTML=rows.map(rHTML).join("");
-  document.getElementById("inv-results").innerHTML=invRows.map(rHTML).join("");
+}
+function restore(){
+  let raw = null;
+  try{ raw = localStorage.getItem(LS_KEY); }
+  catch(e){ PERSIST_OK = false; return false; }   // private mode etc.
+  if(!raw) return false;
+  try{
+    const d = JSON.parse(raw);
+    if(Array.isArray(d.users)) USERS = d.users;
+    if(Array.isArray(d.cats)) CATS = d.cats;
+    if(Array.isArray(d.payments)) PAYMENTS = d.payments;
+    if(Array.isArray(d.apps)){
+      APPS = d.apps.map(a => {
+        if(a.local && a.content){
+          a.url = URL.createObjectURL(new Blob([a.content], { type:'text/html' }));
+        }
+        return a;
+      });
+    }
+    ME = d.me ? (USERS.find(u => u.id === d.me) || null) : null;
+    return true;
+  }catch(e){ return false; }
+}
+function resetDemo(){
+  if(!confirm('Reset all demo data? This clears registered users, uploaded apps, categories and payments, and signs you out.')) return;
+  try{ localStorage.removeItem(LS_KEY); }catch(e){}
+  location.reload();
 }
 
-/* ---------- ลากเส้น isopleth ---------- */
-let drag=null;
-function pxy(ev){const r=svg.getBoundingClientRect();
-  return{x:(ev.clientX-r.left)*760/r.width,y:(ev.clientY-r.top)*780/r.height};}
-svg.addEventListener("pointerdown",ev=>{const p=pxy(ev);
-  drag=p.x<geo.XM?"L":"R"; svg.setPointerCapture(ev.pointerId); dragMove(p);});
-svg.addEventListener("pointermove",ev=>{if(drag)dragMove(pxy(ev));});
-svg.addEventListener("pointerup",()=>drag=null);
-function dragMove(p){
-  const y=Math.min(BOT,Math.max(TOP,p.y));
-  const inv=(f,lo,hi,target)=>{ // bisection รองรับสเกล functional ทั้งขึ้น/ลง
-    const up=f(hi)>f(lo);
-    for(let i=0;i<50;i++){const m=(lo+hi)/2;((f(m)<target)===up)?lo=m:hi=m;}
-    return (lo+hi)/2;};
-  if(drag==="L") st.vL=inv(fL,cur.L.min,cur.L.max,geo.F1hi-(y-TOP)/geo.m1);
-  else           st.vR=inv(fR,cur.R.min,cur.R.max,geo.F3hi-(y-TOP)/geo.m3);
-  render();
+/* ================================================================
+   Screen routing
+   ================================================================ */
+const SCREENS = ['landing','auth','pay','portal','admin'];
+function show(name){
+  SCREENS.forEach(s => $('scr-'+s).classList.toggle('hidden', s!==name));
+  if(name==='pay' && ME) renderPayGate();
+  if(name==='portal'){ renderTabs(); renderPills(); renderCatalog(); renderFrame(); }
+  if(name==='admin'){ loadAdmin(); }
+  renderNav(name);
+}
+function goHome(){
+  if(!ME) return show('landing');
+  if(ME.role==='admin') return show('admin');
+  show(ME.access==='active' ? 'portal' : 'pay');
+}
+function renderNav(screen){
+  $('btn-signin').classList.toggle('hidden', !!ME);
+  $('btn-logout').classList.toggle('hidden', !ME);
+  $('nav-email').textContent = ME ? ME.email : '';
+  $('nav-admin').classList.toggle('hidden', !(ME && ME.role==='admin'));
+  $('btn-dash').className   = 'btn sm ' + (screen==='admin'  ? '' : 'ghost');
+  $('btn-portal').className = 'btn sm ' + (screen==='portal' ? '' : 'ghost');
+  const acc = $('nav-access');
+  if(ME && ME.role==='member'){
+    const tone = ME.access==='active'?'green':ME.access==='pending'?'amber':'red';
+    acc.innerHTML = '<span class="chip '+tone+'">'+ME.access.toUpperCase()+'</span>';
+  } else acc.innerHTML = '';
 }
 
-/* ---------- UI: เมนู + อินพุต ---------- */
-function loadModule(mod){
-  cur=mod;
-  st={vL:mod.L.def,vR:mod.R.def,E:{},inv:st.inv??100000};
-  mod.extras.forEach(x=>st.E[x.id]=x.def);
-  st.E.h=st.E.h??8000; st.E.c=st.E.c??4;
+/* ================================================================
+   Auth  (in-memory)
+   ================================================================ */
+function setAuthMode(m){
+  AUTH_MODE = m;
+  $('seg-login').classList.toggle('on', m==='login');
+  $('seg-register').classList.toggle('on', m==='register');
+  $('auth-submit').textContent = m==='login' ? 'Log in' : 'Create account';
+  $('auth-hint').classList.toggle('hidden', m!=='register');
+  $('auth-err').classList.add('hidden');
+}
+function authError(msg){ $('auth-err').textContent=msg; $('auth-err').classList.remove('hidden'); }
+function submitAuth(){
+  const email = $('auth-email').value.trim().toLowerCase(), pass = $('auth-pass').value;
+  if(!email.includes('@') || pass.length < 6)
+    return authError('Enter a valid email and a password of at least 6 characters.');
+  if(AUTH_MODE==='register'){
+    if(USERS.some(u=>u.email===email)) return authError('That email is already registered — log in instead.');
+    ME = { id:uid(), email, password:pass, role:'member', access:'unpaid' };
+    USERS.push(ME);
+  } else {
+    const u = USERS.find(u=>u.email===email && u.password===pass);
+    if(!u) return authError("Email or password doesn't match an account.");
+    ME = u;
+  }
+  $('auth-email').value = $('auth-pass').value = '';
+  $('auth-err').classList.add('hidden');
+  persist();
+  goHome();
+}
+function logout(){ ME=null; TABS=[]; ACTIVE='home'; persist(); show('landing'); }
 
-  document.getElementById("m-title").textContent=mod.title;
-  document.getElementById("m-formula").innerHTML=mod.formula;
-  document.getElementById("m-note").innerHTML=mod.note;
-  document.getElementById("printinfo").textContent=
-    "ชุดโนโมกราฟวิเคราะห์การสูญเสียพลังงาน · พิมพ์เมื่อ "+new Date().toLocaleDateString("th-TH",
-    {year:"numeric",month:"long",day:"numeric"});
-
-  const box=document.getElementById("m-inputs");
-  const fld=(id,label,val,step)=>`<div class="field"><label for="${id}">${label}</label>
-    <input id="${id}" type="number" step="any" value="${val}"></div>`;
-  box.innerHTML=fld("in-vL",mod.L.label,mod.L.def)+fld("in-vR",mod.R.label,mod.R.def)
-    +mod.extras.map(x=>fld("ex-"+x.id,x.label,x.def)).join("");
-  document.getElementById("inv-inputs").innerHTML=fld("in-inv","เงินลงทุนมาตรการ (บาท)",st.inv);
-
-  document.getElementById("in-inv").addEventListener("input",e=>{
-    const v=+e.target.value; if(isFinite(v)&&v>=0)st.inv=v; render();});
-
-  document.getElementById("in-vL").addEventListener("input",e=>{
-    const v=+e.target.value; if(isFinite(v))st.vL=Math.min(mod.L.max,Math.max(mod.L.min,v)); render();});
-  document.getElementById("in-vR").addEventListener("input",e=>{
-    const v=+e.target.value; if(isFinite(v))st.vR=Math.min(mod.R.max,Math.max(mod.R.min,v)); render();});
-  mod.extras.forEach(x=>{
-    document.getElementById("ex-"+x.id).addEventListener("input",e=>{
-      const v=+e.target.value; if(!isFinite(v))return;
-      st.E[x.id]=v; x.rebuild?buildChart():render();});});
-
-  document.querySelectorAll(".item").forEach(b=>b.classList.toggle("active",b.dataset.id===mod.id));
-  document.getElementById("mobilesel").value=mod.id;
-  buildChart();
+/* ================================================================
+   Payment gate
+   ================================================================ */
+function renderPayGate(){
+  const pending = ME.access==='pending';
+  $('pay-form').classList.toggle('hidden', pending);
+  $('pay-pending').classList.toggle('hidden', !pending);
+}
+function submitPayment(){
+  const ref = $('pay-ref').value.trim();
+  if(ref.length < 4){ $('pay-err').textContent='Enter the transfer reference from your bank slip.'; $('pay-err').classList.remove('hidden'); return; }
+  PAYMENTS.push({ id:uid(), email:ME.email, reference:ref, amount:'990', date:new Date().toISOString().slice(0,10), status:'pending' });
+  ME.access = 'pending';
+  $('pay-err').classList.add('hidden'); $('pay-ref').value='';
+  persist();
+  renderPayGate(); renderNav('pay');
 }
 
-const nav=document.getElementById("sidenav"),sel=document.getElementById("mobilesel");
-GROUPS.forEach(g=>{
-  const h=document.createElement("div");h.className="grp";h.textContent=g.name;nav.appendChild(h);
-  const og=document.createElement("optgroup");og.label=g.name;sel.appendChild(og);
-  g.items.forEach(m=>{
-    const b=document.createElement("button");b.className="item";b.dataset.id=m.id;
-    b.textContent=m.title.split(" (")[0];b.onclick=()=>loadModule(m);nav.appendChild(b);
-    const o=document.createElement("option");o.value=m.id;o.textContent=m.title.split(" (")[0];og.appendChild(o);
-  });});
-sel.addEventListener("change",()=>{
-  for(const g of GROUPS)for(const m of g.items)if(m.id===sel.value)return loadModule(m);});
+/* ================================================================
+   Portal: catalogue, views, in-frame tabs
+   ================================================================ */
+function setView(v){
+  VIEW = v;
+  $('v-list').classList.toggle('on', v==='list');
+  $('v-kanban').classList.toggle('on', v==='kanban');
+  renderCatalog();
+}
+function setCatF(id){ CATF = id; renderPills(); renderCatalog(); }
+function catName(id){ const c = CATS.find(c=>c.id===id); return c?c.name:'—'; }
+function glyph(name, sm){
+  const hue = ((name||'?').charCodeAt(0)*37)%360;
+  return '<div class="glyph '+(sm?'sm':'')+'" style="background:hsl('+hue+',55%,52%)">'+esc((name||'?')[0])+'</div>';
+}
+function filteredApps(){
+  const q = $('q').value.toLowerCase();
+  return APPS.filter(a =>
+    (!q || a.name.toLowerCase().includes(q) || a.descr.toLowerCase().includes(q)) &&
+    (CATF==='all' || a.catId===CATF));
+}
+function renderPills(){
+  $('cat-pills').innerHTML =
+    '<button class="pill '+(CATF==='all'?'on':'')+'" onclick="setCatF(\'all\')">All ('+APPS.length+')</button>' +
+    CATS.map(c=>'<button class="pill '+(CATF===c.id?'on':'')+'" onclick="setCatF(\''+c.id+'\')">'+
+      esc(c.name)+' ('+APPS.filter(a=>a.catId===c.id).length+')</button>').join('');
+}
+function renderCatalog(){
+  const list = filteredApps(), el = $('catalog');
+  if(!list.length){
+    el.innerHTML = '<div class="empty">No applications match. Clear the search or pick another category.</div>';
+    return;
+  }
+  if(VIEW==='list'){
+    el.innerHTML = list.map(a=>
+      '<div class="card list-item">'+glyph(a.name)+
+        '<div class="info"><div class="name">'+esc(a.name)+
+          ' <span class="chip blue">'+esc(catName(a.catId))+'</span>'+
+          (a.local?' <span class="chip gray">LOCAL</span>':'')+'</div>'+
+          '<div class="desc">'+esc(a.descr)+'</div></div>'+
+        '<button class="btn sm" onclick="openApp(\''+a.id+'\')">Open &#8599;</button></div>').join('');
+  } else {
+    const cols = CATF==='all' ? CATS : CATS.filter(c=>c.id===CATF);
+    el.innerHTML = '<div class="board">' + cols.map(c=>{
+      const colApps = list.filter(a=>a.catId===c.id);
+      return '<div class="col"><div class="col-h"><span>'+esc(c.name.toUpperCase())+'</span>'+
+        '<span class="chip gray">'+colApps.length+'</span></div>'+
+        (colApps.map(a=>
+          '<div class="kcard"><div class="name">'+glyph(a.name,true)+' '+esc(a.name)+'</div>'+
+          '<p>'+esc(a.descr)+'</p>'+
+          '<button class="btn sm" onclick="openApp(\''+a.id+'\')">Open &#8599;</button></div>').join('') ||
+          '<div style="text-align:center;padding:16px;font-size:12px;color:var(--ink-soft)">Empty</div>')+
+      '</div>';
+    }).join('') + '</div>';
+  }
+}
 
-document.getElementById("btn-pdf").addEventListener("click",()=>window.print());
+/* ---- in-frame tabs ---- */
+function openApp(id){
+  const existing = TABS.find(t=>t.appId===id);
+  if(existing){ ACTIVE = existing.id; }
+  else { const t={ id:'t'+uid(), appId:id }; TABS.push(t); ACTIVE=t.id; }
+  renderTabs(); renderFrame();
+}
+function switchTab(tid){ ACTIVE = tid; renderTabs(); renderFrame(); }
+function closeTab(ev, tid){
+  ev.stopPropagation();
+  TABS = TABS.filter(t=>t.id!==tid);
+  if(ACTIVE===tid) ACTIVE='home';
+  renderTabs(); renderFrame();
+}
+function renderTabs(){
+  $('tabstrip').innerHTML =
+    '<button class="tab '+(ACTIVE==='home'?'on':'')+'" onclick="switchTab(\'home\')">&#9703; Portal</button>' +
+    TABS.map(t=>{
+      const a = APPS.find(x=>x.id===t.appId);
+      return '<button class="tab '+(ACTIVE===t.id?'on':'')+'" onclick="switchTab(\''+t.id+'\')">'+
+        esc(a?a.name:'App')+' <span class="x" onclick="closeTab(event,\''+t.id+'\')">&times;</span></button>';
+    }).join('');
+}
+function renderFrame(){
+  const home = ACTIVE==='home';
+  $('portal-home').classList.toggle('hidden', !home);
+  $('portal-frame').classList.toggle('hidden', home);
+  if(home){ $('portal-frame').innerHTML=''; return; }
+  const tab = TABS.find(t=>t.id===ACTIVE);
+  if(!tab){ ACTIVE='home'; return renderFrame(); }
+  const a = APPS.find(x=>x.id===tab.appId);
+  const isBlob = a.url.startsWith('blob:');
+  $('portal-frame').innerHTML =
+    '<div class="frame-wrap"><div class="frame-bar">'+
+      '<span class="url">'+esc(isBlob?('local app · '+esc(a.name)):a.url)+'</span>'+
+      '<a href="'+esc(a.url)+'" target="_blank" rel="noreferrer">open externally &#8599;</a></div>'+
+    '<iframe class="appframe" title="'+esc(a.name)+'" src="'+esc(a.url)+'" '+
+      'sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>'+
+    (isBlob?'':'<p class="frame-hint">If this frame stays blank, the site blocks embedding — use "open externally" above.</p>')+
+    '</div>';
+}
 
-loadModule(GROUPS[3].items[0]);   // เปิดหน้าแรกที่ลมรั่ว
-})();
+/* ================================================================
+   Admin
+   ================================================================ */
+function loadAdmin(){
+  $('stats').innerHTML = [
+    ['Applications', APPS.length], ['Categories', CATS.length],
+    ['Members', USERS.filter(u=>u.role==='member').length],
+    ['Pending payments', PAYMENTS.filter(p=>p.status==='pending').length]
+  ].map(([k,v])=>'<div class="card"><div class="num">'+v+'</div><div class="lbl">'+k+'</div></div>').join('');
+  $('af-cat').innerHTML = CATS.map(c=>'<option value="'+c.id+'">'+esc(c.name)+'</option>').join('');
+  const pending = PAYMENTS.filter(p=>p.status==='pending').length;
+  $('at-pay').textContent = 'Payments' + (pending?' ('+pending+')':'');
+  onLinkTypeChange();          // keep upload fields in sync with the select
+  setAdminTab(ADMIN_TAB);
+  renderAdminApps(); renderAdminCats(); renderAdminPay();
+}
+function setAdminTab(t){
+  ADMIN_TAB = t;
+  ['apps','cats','pay'].forEach(k=>{
+    $('admin-'+k).classList.toggle('hidden', k!==t);
+    $('at-'+k).classList.toggle('on', k===t);
+  });
+}
+function onLinkTypeChange(){
+  const local = $('af-type').value==='local';
+  $('af-url-wrap').classList.toggle('hidden', local);
+  $('af-local-wrap').classList.toggle('hidden', !local);
+}
+
+/* ---- upload: create link from the uploaded .html file ---- */
+function showUploadLink(url){
+  UPLOAD_URL = url || '';
+  if(!url) UPLOAD_CONTENT = '';
+  const el = $('af-link');
+  if(UPLOAD_URL){ el.textContent = '✓ Link created from uploaded file'; el.classList.remove('hidden'); }
+  else el.classList.add('hidden');
+}
+function onFileChosen(e){
+  $('af-err').classList.add('hidden');
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  if(!/\.(html?|htm)$/i.test(file.name)){
+    $('af-err').textContent='This build accepts a single .html file. (The Flask build also accepts .zip.)';
+    $('af-err').classList.remove('hidden'); return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    UPLOAD_CONTENT = reader.result;
+    const blobUrl = URL.createObjectURL(new Blob([reader.result], {type:'text/html'}));
+    showUploadLink(blobUrl);
+    if(!$('af-name').value) $('af-name').value = file.name.replace(/\.(html?|htm)$/i,'');
+  };
+  reader.onerror = () => { $('af-err').textContent='Couldn\'t read that file — try again.'; $('af-err').classList.remove('hidden'); };
+  reader.readAsText(file);
+}
+
+/* ---- apps CRUD ---- */
+function renderAdminApps(){
+  $('admin-app-list').innerHTML = APPS.map(a=>
+    '<div class="card row-item">'+glyph(a.name,true)+
+      '<div class="info"><div class="t">'+esc(a.name)+
+        ' <span class="chip blue">'+esc(catName(a.catId))+'</span>'+
+        (a.local?' <span class="chip gray">LOCAL</span>':'')+'</div>'+
+        '<div class="s">'+esc(a.local?('local app · '+a.name):a.url)+'</div></div>'+
+      '<button class="btn sm ghost" onclick="editApp(\''+a.id+'\')">Edit</button>'+
+      '<button class="btn sm danger" onclick="deleteApp(\''+a.id+'\')">Delete</button></div>').join('');
+}
+function editApp(id){
+  const a = APPS.find(x=>x.id===id); if(!a) return;
+  EDIT_APP = id;
+  $('app-form-title').textContent = 'Edit application';
+  $('af-save').textContent = 'Save changes';
+  $('af-cancel').classList.remove('hidden');
+  $('af-name').value=a.name; $('af-desc').value=a.descr;
+  $('af-type').value = a.local?'local':'external'; onLinkTypeChange();
+  if(a.local){ UPLOAD_URL=a.url; UPLOAD_CONTENT=a.content||''; $('af-link').textContent='✓ Keeping existing uploaded file (upload again to replace)'; $('af-link').classList.remove('hidden'); $('af-url').value=''; }
+  else { $('af-url').value=a.url; showUploadLink(''); }
+  $('af-cat').value = a.catId;
+}
+function resetAppForm(){
+  EDIT_APP = null;
+  $('app-form-title').textContent='Add application';
+  $('af-save').textContent='Add application';
+  $('af-cancel').classList.add('hidden');
+  $('af-name').value=$('af-desc').value=$('af-url').value='';
+  $('af-file').value=''; showUploadLink('');
+  $('af-type').value='external'; onLinkTypeChange();
+  $('af-err').classList.add('hidden');
+}
+function appError(msg){ $('af-err').textContent=msg; $('af-err').classList.remove('hidden'); }
+function saveApp(){
+  const local = $('af-type').value==='local';
+  const name = $('af-name').value.trim();
+  const url  = local ? UPLOAD_URL : $('af-url').value.trim();
+  if(!name) return appError('Name is required.');
+  if(!url)  return appError(local ? 'Upload the app file first — the link is created from the uploaded file.' : 'Enter a URL.');
+  const rec = { name, descr:$('af-desc').value.trim(), url, catId:$('af-cat').value, local };
+  if(local) rec.content = UPLOAD_CONTENT;   // stored so the app survives reloads
+  if(EDIT_APP) APPS = APPS.map(a=>a.id===EDIT_APP?{...a,...rec}:a);
+  else APPS.push({ id:uid(), ...rec });
+  persist();
+  resetAppForm(); loadAdmin();
+}
+function deleteApp(id){
+  if(!confirm('Delete this application?')) return;
+  APPS = APPS.filter(a=>a.id!==id); persist(); loadAdmin();
+}
+
+/* ---- categories CRUD ---- */
+function renderAdminCats(){
+  $('admin-cat-list').innerHTML = CATS.map(c=>{
+    const n = APPS.filter(a=>a.catId===c.id).length;
+    return '<div class="card row-item"><div class="info"><div class="t">'+esc(c.name)+'</div></div>'+
+      '<span class="chip gray">'+n+' app'+(n!==1?'s':'')+'</span>'+
+      '<button class="btn sm ghost" onclick="editCat(\''+c.id+'\')">Rename</button>'+
+      '<button class="btn sm danger" '+(n?'disabled':'')+' onclick="deleteCat(\''+c.id+'\')">Delete</button></div>';
+  }).join('');
+}
+function editCat(id){
+  const c = CATS.find(x=>x.id===id); if(!c) return;
+  EDIT_CAT=id;
+  $('cat-form-title').textContent='Rename category';
+  $('cf-save').textContent='Save';
+  $('cf-cancel').classList.remove('hidden');
+  $('cf-name').value=c.name;
+}
+function resetCatForm(){
+  EDIT_CAT=null;
+  $('cat-form-title').textContent='New category';
+  $('cf-save').textContent='Add category';
+  $('cf-cancel').classList.add('hidden');
+  $('cf-name').value=''; $('cf-err').classList.add('hidden');
+}
+function saveCat(){
+  const name = $('cf-name').value.trim();
+  if(!name){ $('cf-err').textContent='Category name is required.'; $('cf-err').classList.remove('hidden'); return; }
+  if(CATS.some(c=>c.name.toLowerCase()===name.toLowerCase() && c.id!==EDIT_CAT)){
+    $('cf-err').textContent='A category with that name already exists.'; $('cf-err').classList.remove('hidden'); return;
+  }
+  if(EDIT_CAT) CATS = CATS.map(c=>c.id===EDIT_CAT?{...c,name}:c);
+  else CATS.push({ id:uid(), name });
+  persist();
+  resetCatForm(); loadAdmin();
+}
+function deleteCat(id){
+  if(APPS.some(a=>a.catId===id)) return alert('Category still contains applications — move or delete them first.');
+  CATS = CATS.filter(c=>c.id!==id); persist(); loadAdmin();
+}
+
+/* ---- payments ---- */
+function renderAdminPay(){
+  const tone = {pending:'amber', verified:'green', rejected:'red'};
+  const rows = [...PAYMENTS].reverse();
+  $('admin-pay').innerHTML = rows.length ? rows.map(p=>
+    '<div class="card row-item"><div class="info"><div class="t">'+esc(p.email)+'</div>'+
+      '<div class="s mono">ref '+esc(p.reference)+' · &#3647;'+esc(p.amount)+' · '+esc(p.date)+'</div></div>'+
+      '<span class="chip '+tone[p.status]+'">'+p.status.toUpperCase()+'</span>'+
+      (p.status==='pending'?
+        '<button class="btn sm green" onclick="payAction(\''+p.id+'\',\'verify\')">Verify</button>'+
+        '<button class="btn sm danger" onclick="payAction(\''+p.id+'\',\'reject\')">Reject</button>':'')+
+    '</div>').join('')
+    : '<div class="empty">No payment submissions yet.</div>';
+}
+function payAction(id, action){
+  const p = PAYMENTS.find(x=>x.id===id); if(!p) return;
+  p.status = action==='verify' ? 'verified' : 'rejected';
+  const access = action==='verify' ? 'active' : 'unpaid';
+  USERS = USERS.map(u=>u.email===p.email?{...u,access}:u);
+  if(ME && ME.email===p.email) ME.access = access;
+  persist();
+  loadAdmin();
+}
+
+/* ================================================================
+   Boot
+   ================================================================ */
+$('af-type').addEventListener('change', onLinkTypeChange);
+setAuthMode('login');
+onLinkTypeChange();
+restore();                     // load persisted data + session (if any)
+if(ME){
+  if(ME.role==='admin') show('admin');
+  else if(ME.access==='active') show('portal');
+  else show('pay');
+} else show('landing');
 </script>
 </body>
 </html>
