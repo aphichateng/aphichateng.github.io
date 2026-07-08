@@ -524,6 +524,14 @@ APPS.forEach(a=>{
   }
 });
 
+// Pristine snapshot of the shipped seed data, taken after local-app decoding.
+// Used by restore() to auto-heal a stale localStorage catalog whenever a new
+// deploy adds seed items — see SEED_VERSION below.
+const SEED_USERS    = USERS.map(u => ({ ...u }));
+const SEED_CATS     = CATS.map(c => ({ ...c }));
+const SEED_APPS     = APPS.map(a => ({ ...a }));
+const SEED_PAYMENTS = PAYMENTS.map(p => ({ ...p }));
+
 /* ---------------- session state ---------------- */
 let ME = null;
 let VIEW = 'list', CATF = 'all';
@@ -543,6 +551,28 @@ const LS_KEY = 'appdeck.v1';  // localStorage key
    is the one to use for anything real.
    ================================================================ */
 let PERSIST_OK = true;
+// Bump this whenever SEED_USERS / SEED_CATS / SEED_APPS / SEED_PAYMENTS gains
+// new items in the source code. On load, any browser whose localStorage was
+// saved under an older version gets the new seed items merged in by id —
+// so redeploying with, say, a newly-added local app doesn't get silently
+// hidden behind a visitor's already-cached catalog. Existing data (including
+// anything the admin has since edited or removed) is left untouched.
+const SEED_VERSION = 2;
+
+function mergeNewSeeds(){
+  let changed = false;
+  const addMissing = (list, seedList) => {
+    seedList.forEach(item => {
+      if(!list.some(x => x.id === item.id)){ list.push({ ...item }); changed = true; }
+    });
+  };
+  addMissing(USERS, SEED_USERS);
+  addMissing(CATS, SEED_CATS);
+  addMissing(APPS, SEED_APPS);
+  addMissing(PAYMENTS, SEED_PAYMENTS);
+  return changed;
+}
+
 function persist(){
   if(!PERSIST_OK) return;
   try{
@@ -551,6 +581,7 @@ function persist(){
       me: ME ? ME.id : null,
       // Drop the ephemeral blob: URL; keep content to rebuild it on load.
       apps: APPS.map(a => a.local ? { ...a, url:'' } : a),
+      seedVersion: SEED_VERSION,
     };
     localStorage.setItem(LS_KEY, JSON.stringify(data));
   }catch(e){
@@ -577,6 +608,10 @@ function restore(){
       });
     }
     ME = d.me ? (USERS.find(u => u.id === d.me) || null) : null;
+
+    // Auto-heal: pull in any seed items added since this snapshot was saved.
+    if((d.seedVersion || 0) < SEED_VERSION && mergeNewSeeds()) persist();
+
     return true;
   }catch(e){ return false; }
 }
