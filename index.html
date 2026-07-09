@@ -489,21 +489,20 @@ let USERS = [
   { id:'u-guest',  email:'guest@portal.com',  password:'guest999',  role:'member', access:'active' },
 ];
 let CATS = [
-  { id:'c1', name:'Energy Management' },
-  { id:'c2', name:'Productivity' },
-  { id:'c3', name:'Design' },
-  { id:'c4', name:'Local Tools' },
+  { id:'c4', name:'Energy Management' },
+  { id:'c1', name:'Productivity' },
+  { id:'c2', name:'Design' },
+  { id:'c3', name:'Local Tools' },
 ];
 let APPS = [
-  { id:'a1', name:'Energy Loss & Efficiency Calculator',
+  { id:'a1', name:'Excalidraw',    descr:'Collaborative whiteboard for sketches and diagrams.', url:'https://excalidraw.com', catId:'c2', local:false },
+  { id:'a2', name:'Example Tool',  descr:'External placeholder application for demos.',         url:'https://example.com',   catId:'c1', local:false },
+  { id:'a3', name:'Energy Loss & Efficiency Calculator',
     descr:'Calculates energy loss and usage efficiency for equipment and systems.',
     catId:'c4', local:true, b64: SEED_B64_ENERGY_TOOL },
-  { id:'a2', name:'Nomograph Energy Analysis Suite',
+  { id:'a4', name:'Nomograph Energy Analysis Suite',
     descr:'Nomograph-based charts for analyzing energy loss.',
     catId:'c4', local:true, b64: SEED_B64_NOMOGRAPH },
-  { id:'a3', name:'Excalidraw',    descr:'Collaborative whiteboard for sketches and diagrams.', url:'https://excalidraw.com', catId:'c2', local:false },
-  { id:'a4', name:'Example Tool',  descr:'External placeholder application for demos.',         url:'https://example.com',   catId:'c1', local:false },
-
 ];
 let PAYMENTS = [
   { id:'p1', email:'member@portal.com', reference:'TRF-88412', amount:'990', date:'2026-07-01', status:'verified' },
@@ -555,16 +554,18 @@ const LS_KEY = 'appdeck.v1';  // localStorage key
    ================================================================ */
 let PERSIST_OK = true;
 // Bump this whenever SEED_USERS / SEED_CATS / SEED_APPS / SEED_PAYMENTS gains
-// new items, OR an existing seed app's uploaded file content is replaced, in
-// the source code. On load, any browser whose localStorage was saved under
-// an older version gets: (a) new seed items merged in by id, and (b) the
-// HTML content of existing seed local-apps re-synced to match the shipped
-// file, so redeploying with an updated upload (or a newly-added app) reaches
-// visitors who already have an older catalog cached. Names/descriptions/
-// categories the admin has since customized on a seed app are left alone —
-// only the underlying file content is refreshed; anything admin-added under
-// a different id is untouched entirely.
-const SEED_VERSION = 3;
+// new items, an existing seed app's uploaded file content is replaced, or the
+// SEED_CATS display order changes, in the source code. On load, any browser
+// whose localStorage was saved under an older version gets: (a) new seed
+// items merged in by id, (b) the HTML content of existing seed local-apps
+// re-synced to match the shipped file, and (c) seed categories reordered to
+// match SEED_CATS — so redeploying with an updated upload, a newly-added
+// app, or a reordered category list reaches visitors who already have an
+// older catalog cached. Names/descriptions/categories the admin has since
+// customized on a seed item are left alone; anything admin-added under a
+// different id is untouched and any custom categories keep their relative
+// order, appended after the seeded ones.
+const SEED_VERSION = 4;
 
 function mergeNewSeeds(){
   let changed = false;
@@ -589,6 +590,20 @@ function mergeNewSeeds(){
       changed = true;
     }
   });
+
+  // Re-apply the shipped category order: seed categories first, in
+  // SEED_CATS order, then any admin-added custom categories afterward
+  // (in their existing relative order).
+  const seedIds = SEED_CATS.map(c => c.id);
+  const seedOrdered = seedIds.map(id => CATS.find(c => c.id === id)).filter(Boolean);
+  const customRest = CATS.filter(c => !seedIds.includes(c.id));
+  const reordered = [...seedOrdered, ...customRest];
+  if(reordered.map(c => c.id).join(',') !== CATS.map(c => c.id).join(',')){
+    CATS.length = 0;
+    CATS.push(...reordered);
+    changed = true;
+  }
+
   return changed;
 }
 
